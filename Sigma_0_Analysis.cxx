@@ -11,7 +11,7 @@
 ///
 /// \brief reconstruction of Sigma^0 resonance
 /// \author Sergei Solokhin
-/// \since 12/03/2024
+/// \since 20/09/2023
 
 #include "Framework/AnalysisTask.h" // needed in any case
 #include "Framework/runDataProcessing.h" // needed in any case
@@ -55,7 +55,15 @@ struct Sigma0Reconstruction {
   Configurable<float> v0setting_dcapostopv{"v0setting_dcapostopv", 0.06f, "DCA Pos To PV [cm]"};
   Configurable<float> v0setting_dcanegtopv{"v0setting_dcanegtopv", 0.06f, "DCA Neg To PV [cm]"};
   Configurable<double> v0setting_cospa{"v0setting_cospa", 0.98, "V0 CosPA"};
-  Configurable<float> v0setting_radius{"v0setting_radius", 0.5f, "V0 Radius [cm]"};
+  Configurable<float> v0setting_radius{"v0setting_radius", 0.0f, "V0 Radius [cm]"};
+
+  Configurable<float> maxPhotonAlpha{"maxPhotonAlpha", 0.9f, "Maximum Photon Decay Asymmetry"};
+  Configurable<float> maxPhotonQt{"maxPhotonQt", 0.9f, "Maximum Photon Decay q_{T} [GeV]"};
+
+  Configurable<float> maxLambdaAlpha{"maxLambdaAlpha", 0.99f, "Maximum Lambda Decay Asymmetry"};
+  Configurable<float> minLambdaAlpha{"minLambdaAlpha", 0.0f, "Minimum Lambda Decay Asymmetry"};
+  Configurable<float> maxLambdaQt{"maxLambdaQt", 0.9f, "Maximum Lambda Decay q_{T} [GeV]"};
+  Configurable<float> minLambdaQt{"minLambdaQt", 0.0f, "Minimum Lambda Decay  [GeV]"};
 
   // filter can only be applied to static columns
   Filter preV0Filter = nabs(v0data::dcapostopv) > v0setting_dcapostopv && nabs(v0data::dcanegtopv) > v0setting_dcanegtopv && v0data::dcaV0daughters < v0setting_dcav0dau;
@@ -63,17 +71,17 @@ struct Sigma0Reconstruction {
 
   // Tracks-related:
   Configurable<float> maxPhotonMass{"maxPhotonMass", 0.1f, "Maximum Electron-Positron Invariant Mass [GeV]"};
-  Configurable<float> maxPhotonPt{"maxPhotonPt", 2.0f, "Maximum Photon Transverse Momentum [GeV]"};
+  Configurable<float> maxPhotonPt{"maxPhotonPt", 0.5f, "Maximum Photon Transverse Momentum [GeV]"};
 
-  Configurable<float> minLambdaMass{"minLambdaMass", 1.09f, "Minimum Lambda Hyperon Invariant Mass [GeV]"};
-  Configurable<float> maxLambdaMass{"maxLambdaMass", 1.14f, "Maximum Lambda Hyperon Invariant Mass [GeV]"};
-  Configurable<float> maxLambdaPt{"maxLambdaPt", 10.0f, "Maximum Lambda Hyperon Transverse Momentum [GeV]"};
+  Configurable<float> minLambdaMass{"minLambdaMass", 1.10f, "Minimum Lambda Hyperon Invariant Mass [GeV]"};
+  Configurable<float> maxLambdaMass{"maxLambdaMass", 1.13f, "Maximum Lambda Hyperon Invariant Mass [GeV]"};
+  Configurable<float> maxLambdaPt{"maxLambdaPt", 5.0f, "Maximum Lambda Hyperon Transverse Momentum [GeV]"};
 
   Configurable<float> maxTpcNSigmaEl{"maxTpcNSigmaEl", 3.0f, "Maximum N_{#sigma_{e}} from TPC signal"};
   Configurable<float> maxTpcNSigmaPr{"maxTpcNSigmaPr", 3.0f, "Maximum N_{#sigma_{p}} from TPC signal"};
   Configurable<float> maxTpcNSigmaPi{"maxTpcNSigmaPi", 3.0f, "Maximum N_{#sigma_{#pi}} from TPC signal"};
 
-  Configurable<float> maxTrackDCA{"maxTrackDCA", 0.2f, "Maximum Track DCA [cm]"};
+  Configurable<float> maxTrackDCA{"maxTrackDCA", 1.0f, "Maximum Track DCA [cm]"};
 
   Filter etaFilter = nabs(track::eta) < etaCut;
   Filter dcaFilter = nabs(track::dcaXY) < maxTrackDCA;
@@ -91,11 +99,15 @@ struct Sigma0Reconstruction {
   void init(InitContext const&) {
     // define axes:
     const AxisSpec axisVertexZ{100, -20.0f, 20.0f, "Vertex Z Coordinate [cm]"};
-    const AxisSpec axisPhotonMass{nBinsMass, 0, maxPhotonMass, "M_{e} [GeV]"};
+    const AxisSpec axisPhotonMass{nBinsMass, 0.0f, maxPhotonMass, "M_{e} [GeV]"};
     const AxisSpec axisLambdaMass{nBinsMass, minLambdaMass, maxLambdaMass, "M_{#Lambda} [GeV]"};
-    const AxisSpec axisPhotonPt{nBinsPt, 0, maxPhotonPt, "p_{T} [GeV]"};
-    const AxisSpec axisLambdaPt{nBinsPt, 0, maxLambdaPt, "p_{T} [GeV]"};
+    const AxisSpec axisPhotonPt{nBinsPt, 0.0f, maxPhotonPt, "p_{T} [GeV]"};
+    const AxisSpec axisLambdaPt{nBinsPt, 0.0f, maxLambdaPt, "p_{T} [GeV]"};
     const AxisSpec axisEta{150, -1.5f, 1.5f, "#eta"};
+    const AxisSpec axisDCA{100, -5.0f, 5.0f, "DCA [cm]"};
+    const AxisSpec axisV0Radius{100, 0.0f, 50.0f, "V0 Radius [cm]"};
+    const AxisSpec axisAlpha{100, -1.0f, 1.0f, "#alpha"};
+    const AxisSpec axisQt{100, 0.0f, 1.0f, "q_{T} [GeV]"};
 
     // collision-related histograms:
     histosCollisions.add("vertexZ", "vertexZ", kTH1F, {axisVertexZ});
@@ -115,22 +127,40 @@ struct Sigma0Reconstruction {
     histosConversionPhoton.add("photonMass", "photonMass", kTH1F, {axisPhotonMass});
     histosConversionPhoton.add("photonPt", "photonPt", kTH1F, {axisPhotonPt});
     histosConversionPhoton.add("posTPCEl", "posTPCEl", kTH1F, {{100, -5, 5, "N_{#sigma_{e}}"}});
-    histosConversionPhoton.add("negTPCEl", "negTPCEl", kTH1F, {{100, -5, 5, "N_{#sigma_{e}}"}}); 
-    histosConversionPhoton.add("RecGenPhotonEnergyDifference", "RecGenPhotonEnergyDifference", kTH1F, {{100, -0.5, 0.5, "E_{rec} - E_{gen} [GeV]"}}); 
-    histosConversionPhoton.add("RecGenPhotondEvsGenE", "RecGenPhotondEvsGenE", kTH2F, {{100, -0.5, 0.5, "E_{rec} - E_{gen} [GeV]"}, axisPhotonPt}); 
+    histosConversionPhoton.add("negTPCEl", "negTPCEl", kTH1F, {{100, -5, 5, "N_{#sigma_{e}}"}});
+    histosConversionPhoton.add("photonArmenterosPodolanski", "photonArmenterosPodolanski", kTH2F, {axisAlpha, axisQt}); 
+    histosConversionPhoton.add("DCAv0Daughters", "DCAv0Daughters", kTH1F, {{100, 0.0f, 1.0f, "DCA [cm]"}});
+    histosConversionPhoton.add("DCAv0Pos", "DCAv0Pos", kTH1F, {axisDCA});
+    histosConversionPhoton.add("DCAv0Neg", "DCAv0Neg", kTH1F, {axisDCA});
+    histosConversionPhoton.add("DCAv0cosPA", "DCAv0cosPA", kTH1F, {{100, 0.9f, 1.0f, "cos#theta"}});
+    histosConversionPhoton.add("DCAv0Radius", "DCAv0Radius", kTH1F, {axisV0Radius});
+
+    histosConversionPhoton.add("RecGenPhotonEnergyDifference", "RecGenPhotonEnergyDifference", kTH1F, {{100, -0.5f, 0.5f, "E_{rec} - E_{gen} [GeV]"}}); 
+    histosConversionPhoton.add("RecGenPhotondEvsGenE", "RecGenPhotondEvsGenE", kTH2F, {{100, -0.5f, 0.5f, "E_{rec} - E_{gen} [GeV]"}, axisPhotonPt}); 
     histosConversionPhoton.add("MismatchPhoton", "MismatchPhoton", kTH1F, {{100, 0, maxPhotonPt, "p_{T} [GeV]"}});
+    histosLambda.add("RecGenPhotonPtDifference", "RecGenPhotonPtDifference", kTH1F, {{100, -0.5, 0.5, "p_{T, rec} - p_{T, gen} [GeV]"}}); 
+    histosLambda.add("RecGenPhotondPtvsGenPt", "RecGenPhotondPtvsGenPt", kTH2F, {{100, -0.5, 0.5, "p_{T, rec} - p_{T, gen} [GeV]"}, axisPhotonPt}); 
 
     // lambda-related histograms:
-    histosLambda.add("lambdaEta", "lambdaEta", kTH1F, {axisEta});
-    histosLambda.add("lambdaMass", "lambdaMass", kTH1F, {axisLambdaMass});
-    histosLambda.add("lambdaPt", "lambdaPt", kTH1F, {axisLambdaPt});
+    histosLambda.add("LambdaEta", "LambdaEta", kTH1F, {axisEta});
+    histosLambda.add("LambdaMass", "LambdaMass", kTH1F, {axisLambdaMass});
+    histosLambda.add("LambdaPt", "LambdaPt", kTH1F, {axisLambdaPt});
     histosLambda.add("posTPCPr", "posTPCPr", kTH1F, {{100, -5, 5, "N_{#sigma_{p}}"}});
     histosLambda.add("negTPCPr", "negTPCPr", kTH1F, {{100, -5, 5, "N_{#sigma_{p}}"}});     
     histosLambda.add("posTPCPi", "posTPCPi", kTH1F, {{100, -5, 5, "N_{#sigma_{#pi}}"}});
     histosLambda.add("negTPCPi", "negTPCPi", kTH1F, {{100, -5, 5, "N_{#sigma_{#pi}}"}}); 
+    histosLambda.add("LambdaArmenterosPodolanski", "LambdaArmenterosPodolanski", kTH2F, {axisAlpha, axisQt}); 
+    histosLambda.add("DCAv0Daughters", "DCAv0Daughters", kTH1F, {{100, 0.0f, 1.0f, "DCA [cm]"}});
+    histosLambda.add("DCAv0Pos", "DCAv0Pos", kTH1F, {axisDCA});
+    histosLambda.add("DCAv0Neg", "DCAv0Neg", kTH1F, {axisDCA});
+    histosLambda.add("DCAv0cosPA", "DCAv0cosPA", kTH1F, {{100, 0.9f, 1.0f, "cos#theta"}});
+    histosLambda.add("DCAv0Radius", "DCAv0Radius", kTH1F, {axisV0Radius});
+
     histosLambda.add("RecGenLambdaEnergyDifference", "RecGenLambdaEnergyDifference", kTH1F, {{100, -0.5, 0.5, "E_{rec} - E_{gen} [GeV]"}}); 
     histosLambda.add("RecGenLambdadEvsGenE", "RecGenLambdadEvsGenE", kTH2F, {{100, -0.5, 0.5, "E_{rec} - E_{gen} [GeV]"}, axisLambdaPt}); 
     histosLambda.add("MismatchLambda", "MismatchLambda", kTH1F, {{100, 0, maxLambdaPt, "p_{T} [GeV]"}});
+    histosLambda.add("RecGenLambdaPtDifference", "RecGenLambdaPtDifference", kTH1F, {{100, -0.5, 0.5, "p_{T, rec} - p_{T, gen} [GeV]"}}); 
+    histosLambda.add("RecGenLambdadPtvsGenPt", "RecGenLambdadPtvsGenPt", kTH2F, {{100, -0.5, 0.5, "p_{T, rec} - p_{T, gen} [GeV]"}, axisLambdaPt}); 
   }
 
   void processCollisions(Collision const& collision) {
@@ -155,7 +185,7 @@ struct Sigma0Reconstruction {
         if (abs(mother.pdgCode()) == 3212) histosMC.fill(HIST("mcGenPhotonFromSigmaPt"), mcparticle.pt());
       }
 
-      if (abs(mcparticle.pdgCode()) != 3212) {
+      if (abs(mcparticle.pdgCode()) == 3212) {
         histosMC.fill(HIST("mcGenSigmaPt"), mcparticle.pt());
       }
     }
@@ -167,6 +197,8 @@ struct Sigma0Reconstruction {
       // "Filter" on dynamic columns
       if (v0.v0cosPA() < v0setting_cospa) continue;
       if (v0.v0radius() < v0setting_radius) continue;
+      if (abs(v0.alpha()) > maxPhotonAlpha) continue;
+      if (v0.qtarm() > maxPhotonQt) continue;
 
       auto const& posPhotonDaughterTrack = v0.posTrack_as<filteredPhotonDaughterTracks>();
       auto const& negPhotonDaughterTrack = v0.negTrack_as<filteredPhotonDaughterTracks>();
@@ -183,10 +215,18 @@ struct Sigma0Reconstruction {
       float positronEnergy = std::sqrt(posPhotonDaughterTrack.p()*posPhotonDaughterTrack.p() + electronMass*electronMass);
       float photonEnergy = electronEnergy + positronEnergy;
       TLorentzVector photon(photonPx, photonPy, photonPz, photonEnergy);
+      if (photon.Pt() > maxPhotonPt) continue;
       if (photon.M() > maxPhotonMass || photon.M() < 0) continue;
 
       histosConversionPhoton.fill(HIST("posTPCEl"), tpcNPosSigmaEl);
       histosConversionPhoton.fill(HIST("negTPCEl"), tpcNNegSigmaEl);
+
+      histosConversionPhoton.fill(HIST("DCAv0Daughters"), v0.dcaV0daughters());
+      histosConversionPhoton.fill(HIST("DCAv0Pos"), v0.dcapostopv());
+      histosConversionPhoton.fill(HIST("DCAv0Neg"), v0.dcanegtopv());
+      histosConversionPhoton.fill(HIST("DCAv0cosPA"), v0.v0cosPA());
+      histosConversionPhoton.fill(HIST("DCAv0Radius"), v0.v0radius());
+      histosConversionPhoton.fill(HIST("photonArmenterosPodolanski"), v0.alpha(), v0.qtarm());
 
       histosConversionPhoton.fill(HIST("photonMass"), photon.M());
       histosConversionPhoton.fill(HIST("photonPt"), photon.Pt());
@@ -202,6 +242,8 @@ struct Sigma0Reconstruction {
             if (abs(photonMother.pdgCode()) == 3212) {
               histosConversionPhoton.fill(HIST("RecGenPhotonEnergyDifference"), photonEnergy - v0mcParticle.e());
               histosConversionPhoton.fill(HIST("RecGenPhotondEvsGenE"), photonEnergy - v0mcParticle.e(), v0mcParticle.e());
+              histosConversionPhoton.fill(HIST("RecGenPhotonPtDifference"), photon.Pt() - v0mcParticle.pt());
+              histosConversionPhoton.fill(HIST("RecGenPhotondPtvsGenPt"), photon.Pt() - v0mcParticle.pt(), v0mcParticle.pt());
             } else {
               histosConversionPhoton.fill(HIST("MismatchPhoton"), v0mcParticle.pt());    
             }
@@ -217,6 +259,8 @@ struct Sigma0Reconstruction {
       // "Filter" on dynamic columns
       if (v0.v0cosPA() < v0setting_cospa) continue;
       if (v0.v0radius() < v0setting_radius) continue;
+      if (abs(v0.alpha()) > maxLambdaAlpha || abs(v0.alpha()) < minLambdaAlpha) continue;
+      if (v0.qtarm() > maxLambdaQt || v0.qtarm() < minLambdaQt) continue;
 
       auto const& posLambdaDaughterTrack = v0.posTrack_as<filteredLambdaDaughterTracks>();
       auto const& negLambdaDaughterTrack = v0.negTrack_as<filteredLambdaDaughterTracks>();
@@ -241,9 +285,9 @@ struct Sigma0Reconstruction {
 
       if (!isLambda && !isAntiLambda) continue;
 
-      float lambdaPx = posLambdaDaughterTrack.px() + negLambdaDaughterTrack.px();
-      float lambdaPy = posLambdaDaughterTrack.py() + negLambdaDaughterTrack.py();
-      float lambdaPz = posLambdaDaughterTrack.pz() + negLambdaDaughterTrack.pz();
+      float LambdaPx = posLambdaDaughterTrack.px() + negLambdaDaughterTrack.px();
+      float LambdaPy = posLambdaDaughterTrack.py() + negLambdaDaughterTrack.py();
+      float LambdaPz = posLambdaDaughterTrack.pz() + negLambdaDaughterTrack.pz();
       float protonEnergy = 0;
       float pionEnergy = 0;
       if (isLambda) {
@@ -252,11 +296,11 @@ struct Sigma0Reconstruction {
       } else if (isAntiLambda) {
         protonEnergy = std::sqrt(negLambdaDaughterTrack.p()*negLambdaDaughterTrack.p() + protonMass*protonMass);
         pionEnergy = std::sqrt(posLambdaDaughterTrack.p()*posLambdaDaughterTrack.p() + chargedPionMass*chargedPionMass);
-      };
-
-      float lambdaEnergy = protonEnergy + pionEnergy;
-      TLorentzVector lambda(lambdaPx, lambdaPy, lambdaPz, lambdaEnergy);
-      if (lambda.M() > maxLambdaMass || lambda.M() < minLambdaMass) continue;
+      }
+      float LambdaEnergy = protonEnergy + pionEnergy;
+      TLorentzVector Lambda(LambdaPx, LambdaPy, LambdaPz, LambdaEnergy);
+      if (Lambda.Pt() > maxLambdaPt) continue;
+      if (Lambda.M() > maxLambdaMass || Lambda.M() < minLambdaMass) continue;
 
       if (isLambda) {
         histosLambda.fill(HIST("posTPCPr"), tpcNPosSigmaPr);
@@ -264,11 +308,18 @@ struct Sigma0Reconstruction {
       } else if (isAntiLambda) {
         histosLambda.fill(HIST("posTPCPi"), tpcNPosSigmaPi);
         histosLambda.fill(HIST("negTPCPr"), tpcNNegSigmaPr);
-      };
+      }
 
-      histosLambda.fill(HIST("lambdaMass"), lambda.M());
-      histosLambda.fill(HIST("lambdaPt"), lambda.Pt());
-      histosLambda.fill(HIST("lambdaEta"), lambda.Eta());
+      histosLambda.fill(HIST("DCAv0Daughters"), v0.dcaV0daughters());
+      histosLambda.fill(HIST("DCAv0Pos"), v0.dcapostopv());
+      histosLambda.fill(HIST("DCAv0Neg"), v0.dcanegtopv());
+      histosLambda.fill(HIST("DCAv0cosPA"), v0.v0cosPA());
+      histosLambda.fill(HIST("DCAv0Radius"), v0.v0radius());
+      histosLambda.fill(HIST("LambdaArmenterosPodolanski"), v0.alpha(), v0.qtarm());
+
+      histosLambda.fill(HIST("LambdaMass"), Lambda.M());
+      histosLambda.fill(HIST("LambdaPt"), Lambda.Pt());
+      histosLambda.fill(HIST("LambdaEta"), Lambda.Eta());
 
       if (v0.has_mcParticle()) {
         auto const& v0mcParticle = v0.mcParticle();
@@ -277,11 +328,13 @@ struct Sigma0Reconstruction {
           if (v0mcParticle.has_mothers()) {
             auto const& lambdaMother = v0mcParticle.mothers_first_as<McParticles>();
             // check that lambda hyperon comes from Sigma^0 hyperon:
-            if (abs(lambdaMother.pdgCode()) == 3212) {
-              histosLambda.fill(HIST("RecGenLambdaEnergyDifference"), lambdaEnergy - v0mcParticle.e());
-              histosLambda.fill(HIST("RecGenLambdadEvsGenE"), lambdaEnergy - v0mcParticle.e(), v0mcParticle.e());
+            if (abs(lambdaMother.pdgCode()) == 3212) { 
+              histosLambda.fill(HIST("RecGenLambdaEnergyDifference"), LambdaEnergy - v0mcParticle.e());
+              histosLambda.fill(HIST("RecGenLambdadEvsGenE"), LambdaEnergy - v0mcParticle.e(), v0mcParticle.e());
+              histosLambda.fill(HIST("RecGenLambdaPtDifference"), Lambda.Pt() - v0mcParticle.pt());
+              histosLambda.fill(HIST("RecGenLambdadPtvsGenPt"), Lambda.Pt() - v0mcParticle.pt(), v0mcParticle.pt());
             } else {
-              histosLambda.fill(HIST("MismatchLambda"), v0mcParticle.pt());    
+              histosLambda.fill(HIST("MismatchLambda"), v0mcParticle.pt());       
             }
           }
         }
