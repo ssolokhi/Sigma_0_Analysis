@@ -15,7 +15,7 @@
 
 #include "Framework/AnalysisTask.h" // needed in any case
 #include "Framework/runDataProcessing.h" // needed in any case
-#include "Framework/ASoA.h" // For columns and tables
+#include "Framework/ASoA.h" // For creating columns and tables
 #include "Framework/AnalysisDataModel.h" // For extending the standard AOD format
 #include "Framework/ASoAHelpers.h" // For Filters
 
@@ -34,7 +34,34 @@ using namespace o2::soa;
 using namespace o2::framework;
 using namespace o2::framework::expressions; // for filters
 
+namespace o2::aod {
+  namespace conversionphoton {
+    DECLARE_SOA_COLUMN(CollisionId, collisionid, int);
+    DECLARE_SOA_COLUMN(E, e, float);
+    DECLARE_SOA_COLUMN(P, p, float);
+    DECLARE_SOA_COLUMN(Pt, pt, float);
+  }
+
+  DECLARE_SOA_TABLE(ConversionPhoton, "AOD", "PCMPHOTON", 
+  conversionphoton::CollisionId, conversionphoton::E, conversionphoton::P, conversionphoton::Pt);
+}
+
+namespace o2::aod {
+  namespace lambdahyperon {
+    DECLARE_SOA_COLUMN(CollisionId, collisionid, int);
+    DECLARE_SOA_COLUMN(E, e, float);
+    DECLARE_SOA_COLUMN(P, p, float);
+    DECLARE_SOA_COLUMN(Pt, pt, float);
+  }
+
+  DECLARE_SOA_TABLE(LambdaHyperon, "AOD", "LAMBDAHYPERON", 
+  lambdahyperon::CollisionId, lambdahyperon::E, lambdahyperon::P, lambdahyperon::Pt);
+}
+
 struct Sigma0Reconstruction {
+  Produces<ConversionPhoton> AddConversionPhoton;
+  Produces<LambdaHyperon> AddLambdaHyperon;
+
   float electronMass = o2::constants::physics::MassElectron;
   float chargedPionMass = o2::constants::physics::MassPionCharged;
   float protonMass = o2::constants::physics::MassProton;
@@ -88,8 +115,8 @@ struct Sigma0Reconstruction {
 
   using photonDaughterTracks = Join<Tracks, TracksDCA, pidTPCEl, McTrackLabels>;
   using filteredPhotonDaughterTracks = Filtered<photonDaughterTracks>;
-  using lambdaDaughterTracks = Join<Tracks, TracksDCA, pidTPCPi, pidTPCPr, McTrackLabels>;
-  using filteredLambdaDaughterTracks = Filtered<lambdaDaughterTracks>;
+  using LambdaDaughterTracks = Join<Tracks, TracksDCA, pidTPCPi, pidTPCPr, McTrackLabels>;
+  using filteredLambdaDaughterTracks = Filtered<LambdaDaughterTracks>;
 
   HistogramRegistry histosCollisions{"histosCollisions", {}, OutputObjHandlingPolicy::AnalysisObject};
   HistogramRegistry histosMC{"histosMC", {}, OutputObjHandlingPolicy::AnalysisObject};
@@ -107,11 +134,11 @@ struct Sigma0Reconstruction {
     const AxisSpec axisDCA{100, -5.0f, 5.0f, "DCA [cm]"};
     const AxisSpec axisV0Radius{100, 0.0f, 50.0f, "V0 Radius [cm]"};
     const AxisSpec axisAlpha{100, -1.0f, 1.0f, "#alpha"};
-    const AxisSpec axisQt{100, 0.0f, 1.0f, "q_{T} [GeV]"};
+    const AxisSpec axisQt{100, 0.0f, 0.25f, "q_{T} [GeV]"};
 
     // collision-related histograms:
-    histosCollisions.add("vertexZ", "vertexZ", kTH1F, {axisVertexZ});
-    histosCollisions.add("eventCounter", "eventCounter", kTH1F, {{1, 0, 1, " Accepted Events Count"}});
+    histosCollisions.add("vertexZ", "Vertex Z Coordinate", kTH1F, {axisVertexZ});
+    histosCollisions.add("eventCounter", "Event Counter", kTH1F, {{1, 0, 1, " Accepted Events Count"}});
 
     // Monte-Carlo histograms:
     histosMC.add("mcGenEta", "mcGenEta", kTH1F, {axisEta});
@@ -132,14 +159,14 @@ struct Sigma0Reconstruction {
     histosConversionPhoton.add("DCAv0Daughters", "DCAv0Daughters", kTH1F, {{100, 0.0f, 1.0f, "DCA [cm]"}});
     histosConversionPhoton.add("DCAv0Pos", "DCAv0Pos", kTH1F, {axisDCA});
     histosConversionPhoton.add("DCAv0Neg", "DCAv0Neg", kTH1F, {axisDCA});
-    histosConversionPhoton.add("DCAv0cosPA", "DCAv0cosPA", kTH1F, {{100, 0.9f, 1.0f, "cos#theta"}});
+    histosConversionPhoton.add("DCAv0cosPA", "DCAv0cosPA", kTH1F, {{100, v0setting_cospa, 1.0f, "cos#theta"}});
     histosConversionPhoton.add("DCAv0Radius", "DCAv0Radius", kTH1F, {axisV0Radius});
 
     histosConversionPhoton.add("RecGenPhotonEnergyDifference", "RecGenPhotonEnergyDifference", kTH1F, {{100, -0.5f, 0.5f, "E_{rec} - E_{gen} [GeV]"}}); 
     histosConversionPhoton.add("RecGenPhotondEvsGenE", "RecGenPhotondEvsGenE", kTH2F, {{100, -0.5f, 0.5f, "E_{rec} - E_{gen} [GeV]"}, axisPhotonPt}); 
+    histosConversionPhoton.add("RecGenPhotonPtDifference", "RecGenPhotonPtDifference", kTH1F, {{100, -0.5, 0.5, "p_{T, rec} - p_{T, gen} [GeV]"}}); 
+    histosConversionPhoton.add("RecGenPhotondPtvsGenPt", "RecGenPhotondPtvsGenPt", kTH2F, {{100, -0.5, 0.5, "p_{T, rec} - p_{T, gen} [GeV]"}, axisPhotonPt}); 
     histosConversionPhoton.add("MismatchPhoton", "MismatchPhoton", kTH1F, {{100, 0, maxPhotonPt, "p_{T} [GeV]"}});
-    histosLambda.add("RecGenPhotonPtDifference", "RecGenPhotonPtDifference", kTH1F, {{100, -0.5, 0.5, "p_{T, rec} - p_{T, gen} [GeV]"}}); 
-    histosLambda.add("RecGenPhotondPtvsGenPt", "RecGenPhotondPtvsGenPt", kTH2F, {{100, -0.5, 0.5, "p_{T, rec} - p_{T, gen} [GeV]"}, axisPhotonPt}); 
 
     // lambda-related histograms:
     histosLambda.add("LambdaEta", "LambdaEta", kTH1F, {axisEta});
@@ -153,15 +180,15 @@ struct Sigma0Reconstruction {
     histosLambda.add("DCAv0Daughters", "DCAv0Daughters", kTH1F, {{100, 0.0f, 1.0f, "DCA [cm]"}});
     histosLambda.add("DCAv0Pos", "DCAv0Pos", kTH1F, {axisDCA});
     histosLambda.add("DCAv0Neg", "DCAv0Neg", kTH1F, {axisDCA});
-    histosLambda.add("DCAv0cosPA", "DCAv0cosPA", kTH1F, {{100, 0.9f, 1.0f, "cos#theta"}});
+    histosLambda.add("DCAv0cosPA", "DCAv0cosPA", kTH1F, {{100, v0setting_cospa, 1.0f, "cos#theta"}});
     histosLambda.add("DCAv0Radius", "DCAv0Radius", kTH1F, {axisV0Radius});
 
     histosLambda.add("RecGenLambdaEnergyDifference", "RecGenLambdaEnergyDifference", kTH1F, {{100, -0.5, 0.5, "E_{rec} - E_{gen} [GeV]"}}); 
     histosLambda.add("RecGenLambdadEvsGenE", "RecGenLambdadEvsGenE", kTH2F, {{100, -0.5, 0.5, "E_{rec} - E_{gen} [GeV]"}, axisLambdaPt}); 
-    histosLambda.add("MismatchLambda", "MismatchLambda", kTH1F, {{100, 0, maxLambdaPt, "p_{T} [GeV]"}});
     histosLambda.add("RecGenLambdaPtDifference", "RecGenLambdaPtDifference", kTH1F, {{100, -0.5, 0.5, "p_{T, rec} - p_{T, gen} [GeV]"}}); 
     histosLambda.add("RecGenLambdadPtvsGenPt", "RecGenLambdadPtvsGenPt", kTH2F, {{100, -0.5, 0.5, "p_{T, rec} - p_{T, gen} [GeV]"}, axisLambdaPt}); 
-  }
+    histosLambda.add("MismatchLambda", "MismatchLambda", kTH1F, {{100, 0, maxLambdaPt, "p_{T} [GeV]"}});
+    }
 
   void processCollisions(Collision const& collision) {
     histosCollisions.fill(HIST("vertexZ"), collision.posZ());
@@ -231,6 +258,8 @@ struct Sigma0Reconstruction {
       histosConversionPhoton.fill(HIST("photonMass"), photon.M());
       histosConversionPhoton.fill(HIST("photonPt"), photon.Pt());
       histosConversionPhoton.fill(HIST("photonEta"), photon.Eta());
+
+      AddConversionPhoton(collision.bcId(), photon.E(), photon.P(), photon.Pt());
 
       if (v0.has_mcParticle()) {
         auto const& v0mcParticle = v0.mcParticle();
@@ -320,6 +349,8 @@ struct Sigma0Reconstruction {
       histosLambda.fill(HIST("LambdaMass"), Lambda.M());
       histosLambda.fill(HIST("LambdaPt"), Lambda.Pt());
       histosLambda.fill(HIST("LambdaEta"), Lambda.Eta());
+
+      AddLambdaHyperon(collision.bcId(), Lambda.E(), Lambda.P(), Lambda.Pt());
 
       if (v0.has_mcParticle()) {
         auto const& v0mcParticle = v0.mcParticle();
