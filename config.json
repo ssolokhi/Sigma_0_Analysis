@@ -7,10 +7,13 @@
         "start-value-enumeration": "0",
         "end-value-enumeration": "-1",
         "step-value-enumeration": "1",
-        "aod-file": "AO2D.root"
+        "aod-file": "@aodfiles.txt"
     },
     "internal-dpl-aod-spawner": "",
     "internal-dpl-aod-index-builder": "",
+    "process-collisions": {
+        "zVertexCut": "10"
+    },
     "timestamp-task": {
         "verbose": "false",
         "rct-path": "RCT\/Info\/RunInformation",
@@ -67,6 +70,12 @@
         "processBuildValiddEdxMCAssociated": "false",
         "processSkipV0sNotUsedInCascades": "false",
         "processSkipV0sNotUsedInTrackedCascades": "false"
+    },
+    "process-generated-events": {
+        "nBinsPt": "100",
+        "maxPhotonPt": "0.5",
+        "maxLambdaPt": "5",
+        "maxSigma0Pt": "5"
     },
     "lambdakzero-builder": {
         "createV0CovMats": "-1",
@@ -312,7 +321,7 @@
         "syst": "PbPb",
         "muonSelection": "0",
         "customDeltaBC": "0",
-        "isMC": "false",
+        "isMC": "true",
         "processRun2": "false",
         "processRun3": "true"
     },
@@ -348,35 +357,51 @@
         "populateV0MCCores": "false"
     },
     "lambdakzero-v0-data-link-builder": "",
-    "sigma0-reconstruction": {
+    "process-conversion-photons": {
+        "zVertexCut": "10",
         "nBinsPt": "100",
         "nBinsMass": "100",
         "etaCut": "1.20000005",
-        "zVertexCut": "15",
-        "v0setting_dcav0dau": "5.0",
+        "v0setting_dcav0dau": "0.3",
         "v0setting_dcapostopv": "0.0",
         "v0setting_dcanegtopv": "0.0",
-        "v0setting_cospa": "0.95",
+        "v0setting_cospa": "0.995",
+        "v0setting_radius": "1",
+        "maxPhotonMass": "0.100000001",
+        "maxPhotonPt": "5",
+        "maxTpcNSigmaEl": "3",
+        "maxTrackDCA": "1",
+        "maxPhotonAlpha": "0.699999988",
+        "maxPhotonQt": "0.02500000007"
+    },
+    "process-lambda-hyperons": {
+        "zVertexCut": "10",
+        "nBinsPt": "100",
+        "nBinsMass": "100",
+        "etaCut": "1.20000005",
+        "v0setting_dcav0dau": "1",
+        "v0setting_dcapostopv": "0.0",
+        "v0setting_dcanegtopv": "0.0",
+        "v0setting_cospa": "0.995",
         "v0setting_radius": "0.0",
-        "maxPhotonAlpha": "0.999999976",
-        "maxPhotonQt": "0.1",
-        "maxLambdaAlpha": "0.99000001",
-        "minLambdaAlpha": "0",
-        "maxLambdaQt": "0.2",
-        "minLambdaQt": "0.0",
-        "maxPhotonMass": "0.500000001",
-        "maxPhotonPt": "1.0",
-        "minLambdaMass": "1.1000001",
+        "maxLambdaAlpha": "0.899999976",
+        "minLambdaAlpha": "0.400000006",
+        "maxLambdaQt": "0.129999995",
+        "minLambdaQt": "0.0199999996",
+        "minLambdaMass": "1.10000002",
         "maxLambdaMass": "1.13",
         "maxLambdaPt": "5",
-        "maxTpcNSigmaEl": "3",
         "maxTpcNSigmaPr": "3",
         "maxTpcNSigmaPi": "3",
-        "maxTrackDCA": "2.5",
-        "processCollisions": "true",
-        "processGeneratedCollisions": "true",
-        "processConversionPhotons": "true",
-        "processLambdas": "true"
+        "maxTrackDCA": "1"
+    },
+    "reconstruct-sigma0via-p-c-m": {
+        "zVertexCut": "10",
+        "nBinsPt": "100",
+        "nBinsMass": "100",
+        "minSigma0Mass": "1.10000002",
+        "maxSigma0Mass": "1.29999995",
+        "maxSigma0Pt": "5"
     },
     "internal-dpl-aod-writer": "",
     "internal-dpl-aod-global-analysis-file-sink": "",

@@ -11,7 +11,7 @@
 ///
 /// \brief reconstruction of Sigma^0 resonance
 /// \author Sergei Solokhin
-/// \since 20/09/2023
+/// \since 12/03/2024
 
 #include "Framework/AnalysisTask.h" // needed in any case
 #include "Framework/runDataProcessing.h" // needed in any case
@@ -37,191 +37,164 @@ using namespace o2::framework::expressions; // for filters
 namespace o2::aod {
   namespace conversionphoton {
     DECLARE_SOA_COLUMN(CollisionId, collisionid, int);
+    DECLARE_SOA_COLUMN(Px, px, float);
+    DECLARE_SOA_COLUMN(Py, py, float);
+    DECLARE_SOA_COLUMN(Pz, pz, float);
     DECLARE_SOA_COLUMN(E, e, float);
-    DECLARE_SOA_COLUMN(P, p, float);
-    DECLARE_SOA_COLUMN(Pt, pt, float);
   }
 
   DECLARE_SOA_TABLE(ConversionPhoton, "AOD", "PCMPHOTON", 
-  conversionphoton::CollisionId, conversionphoton::E, conversionphoton::P, conversionphoton::Pt);
+  conversionphoton::CollisionId, conversionphoton::Px, conversionphoton::Py, conversionphoton::Pz, conversionphoton::E);
 }
 
 namespace o2::aod {
   namespace lambdahyperon {
     DECLARE_SOA_COLUMN(CollisionId, collisionid, int);
+    DECLARE_SOA_COLUMN(Px, px, float);
+    DECLARE_SOA_COLUMN(Py, py, float);
+    DECLARE_SOA_COLUMN(Pz, pz, float);
     DECLARE_SOA_COLUMN(E, e, float);
-    DECLARE_SOA_COLUMN(P, p, float);
-    DECLARE_SOA_COLUMN(Pt, pt, float);
   }
 
   DECLARE_SOA_TABLE(LambdaHyperon, "AOD", "LAMBDAHYPERON", 
-  lambdahyperon::CollisionId, lambdahyperon::E, lambdahyperon::P, lambdahyperon::Pt);
+  lambdahyperon::CollisionId, lambdahyperon::Px, lambdahyperon::Py, lambdahyperon::Pz, lambdahyperon::E);
 }
 
-struct Sigma0Reconstruction {
-  Produces<ConversionPhoton> AddConversionPhoton;
-  Produces<LambdaHyperon> AddLambdaHyperon;
-
-  float electronMass = o2::constants::physics::MassElectron;
-  float chargedPionMass = o2::constants::physics::MassPionCharged;
-  float protonMass = o2::constants::physics::MassProton;
-
-  // General:
-  Configurable<int> nBinsPt{"nBinsPt", 100, "N bins in pT histo"};
-  Configurable<int> nBinsMass{"nBinsMass", 100, "N bins in invariant mass histo"};
-  Configurable<float> etaCut{"etaCut", 1.2f, "Maximum Pseudorapidity"};
-
-  // Collisions-related:
+struct ProcessCollisions {
   Configurable<float> zVertexCut{"zVertexCut", 10.0f, "Maximum Primary Vertex Z coordinate [cm]"};
-  Filter zVertexFilter = nabs(collision::posZ) < zVertexCut;
-  Filter eventSelectionFilter = evsel::sel8 == true;
-  using filteredCollision = Filtered<Join<Collisions, EvSels>>::iterator;
-
-  // Decay vertex-related:
-  Configurable<float> v0setting_dcav0dau{"v0setting_dcav0dau", 1.0f, "DCA V0 Daughters [cm]"};
-  Configurable<float> v0setting_dcapostopv{"v0setting_dcapostopv", 0.06f, "DCA Pos To PV [cm]"};
-  Configurable<float> v0setting_dcanegtopv{"v0setting_dcanegtopv", 0.06f, "DCA Neg To PV [cm]"};
-  Configurable<double> v0setting_cospa{"v0setting_cospa", 0.98, "V0 CosPA"};
-  Configurable<float> v0setting_radius{"v0setting_radius", 0.0f, "V0 Radius [cm]"};
-
-  Configurable<float> maxPhotonAlpha{"maxPhotonAlpha", 0.9f, "Maximum Photon Decay Asymmetry"};
-  Configurable<float> maxPhotonQt{"maxPhotonQt", 0.9f, "Maximum Photon Decay q_{T} [GeV]"};
-
-  Configurable<float> maxLambdaAlpha{"maxLambdaAlpha", 0.99f, "Maximum Lambda Decay Asymmetry"};
-  Configurable<float> minLambdaAlpha{"minLambdaAlpha", 0.0f, "Minimum Lambda Decay Asymmetry"};
-  Configurable<float> maxLambdaQt{"maxLambdaQt", 0.9f, "Maximum Lambda Decay q_{T} [GeV]"};
-  Configurable<float> minLambdaQt{"minLambdaQt", 0.0f, "Minimum Lambda Decay  [GeV]"};
-
-  // filter can only be applied to static columns
-  Filter preV0Filter = nabs(v0data::dcapostopv) > v0setting_dcapostopv && nabs(v0data::dcanegtopv) > v0setting_dcanegtopv && v0data::dcaV0daughters < v0setting_dcav0dau;
-  using filteredV0s = Filtered<Join<V0Datas, McV0Labels>>;
-
-  // Tracks-related:
-  Configurable<float> maxPhotonMass{"maxPhotonMass", 0.1f, "Maximum Electron-Positron Invariant Mass [GeV]"};
-  Configurable<float> maxPhotonPt{"maxPhotonPt", 0.5f, "Maximum Photon Transverse Momentum [GeV]"};
-
-  Configurable<float> minLambdaMass{"minLambdaMass", 1.10f, "Minimum Lambda Hyperon Invariant Mass [GeV]"};
-  Configurable<float> maxLambdaMass{"maxLambdaMass", 1.13f, "Maximum Lambda Hyperon Invariant Mass [GeV]"};
-  Configurable<float> maxLambdaPt{"maxLambdaPt", 5.0f, "Maximum Lambda Hyperon Transverse Momentum [GeV]"};
-
-  Configurable<float> maxTpcNSigmaEl{"maxTpcNSigmaEl", 3.0f, "Maximum N_{#sigma_{e}} from TPC signal"};
-  Configurable<float> maxTpcNSigmaPr{"maxTpcNSigmaPr", 3.0f, "Maximum N_{#sigma_{p}} from TPC signal"};
-  Configurable<float> maxTpcNSigmaPi{"maxTpcNSigmaPi", 3.0f, "Maximum N_{#sigma_{#pi}} from TPC signal"};
-
-  Configurable<float> maxTrackDCA{"maxTrackDCA", 1.0f, "Maximum Track DCA [cm]"};
-
-  Filter etaFilter = nabs(track::eta) < etaCut;
-  Filter dcaFilter = nabs(track::dcaXY) < maxTrackDCA;
-
-  using photonDaughterTracks = Join<Tracks, TracksDCA, pidTPCEl, McTrackLabels>;
-  using filteredPhotonDaughterTracks = Filtered<photonDaughterTracks>;
-  using LambdaDaughterTracks = Join<Tracks, TracksDCA, pidTPCPi, pidTPCPr, McTrackLabels>;
-  using filteredLambdaDaughterTracks = Filtered<LambdaDaughterTracks>;
 
   HistogramRegistry histosCollisions{"histosCollisions", {}, OutputObjHandlingPolicy::AnalysisObject};
-  HistogramRegistry histosMC{"histosMC", {}, OutputObjHandlingPolicy::AnalysisObject};
-  HistogramRegistry histosConversionPhoton{"histosConversionPhoton", {}, OutputObjHandlingPolicy::AnalysisObject};
-  HistogramRegistry histosLambda{"histosLambda", {}, OutputObjHandlingPolicy::AnalysisObject};
 
   void init(InitContext const&) {
-    // define axes:
     const AxisSpec axisVertexZ{100, -20.0f, 20.0f, "Vertex Z Coordinate [cm]"};
-    const AxisSpec axisPhotonMass{nBinsMass, 0.0f, maxPhotonMass, "M_{e} [GeV]"};
-    const AxisSpec axisLambdaMass{nBinsMass, minLambdaMass, maxLambdaMass, "M_{#Lambda} [GeV]"};
-    const AxisSpec axisPhotonPt{nBinsPt, 0.0f, maxPhotonPt, "p_{T} [GeV]"};
-    const AxisSpec axisLambdaPt{nBinsPt, 0.0f, maxLambdaPt, "p_{T} [GeV]"};
-    const AxisSpec axisEta{150, -1.5f, 1.5f, "#eta"};
-    const AxisSpec axisDCA{100, -5.0f, 5.0f, "DCA [cm]"};
-    const AxisSpec axisV0Radius{100, 0.0f, 50.0f, "V0 Radius [cm]"};
-    const AxisSpec axisAlpha{100, -1.0f, 1.0f, "#alpha"};
-    const AxisSpec axisQt{100, 0.0f, 0.25f, "q_{T} [GeV]"};
 
-    // collision-related histograms:
-    histosCollisions.add("vertexZ", "Vertex Z Coordinate", kTH1F, {axisVertexZ});
-    histosCollisions.add("eventCounter", "Event Counter", kTH1F, {{1, 0, 1, " Accepted Events Count"}});
-
-    // Monte-Carlo histograms:
-    histosMC.add("mcGenEta", "mcGenEta", kTH1F, {axisEta});
-    histosMC.add("mcGenPt", "mcGenPt", kTH1F, {{100, 0, 5, "p_{T} [GeV]"}});
-    histosMC.add("mcGenLambdaPt", "mcGenLambdaPt", kTH1F, {axisLambdaPt});
-    histosMC.add("mcGenSigmaPt", "mcGenSigmaPt", kTH1F, {axisLambdaPt});
-    histosMC.add("mcGenPhotonPt", "mcGenPhotonPt", kTH1F, {axisPhotonPt});
-    histosMC.add("mcGenPhotonFromSigmaPt", "mcGenPhotonFromSigmaPt", kTH1F, {axisPhotonPt});
-    histosMC.add("mcGenLambdaFromSigmaPt", "mcGenLambdaFromSigmaPt", kTH1F, {axisLambdaPt});
-
-    // conversion photon-related histograms:
-    histosConversionPhoton.add("photonEta", "photonEta", kTH1F, {axisEta});
-    histosConversionPhoton.add("photonMass", "photonMass", kTH1F, {axisPhotonMass});
-    histosConversionPhoton.add("photonPt", "photonPt", kTH1F, {axisPhotonPt});
-    histosConversionPhoton.add("posTPCEl", "posTPCEl", kTH1F, {{100, -5, 5, "N_{#sigma_{e}}"}});
-    histosConversionPhoton.add("negTPCEl", "negTPCEl", kTH1F, {{100, -5, 5, "N_{#sigma_{e}}"}});
-    histosConversionPhoton.add("photonArmenterosPodolanski", "photonArmenterosPodolanski", kTH2F, {axisAlpha, axisQt}); 
-    histosConversionPhoton.add("DCAv0Daughters", "DCAv0Daughters", kTH1F, {{100, 0.0f, 1.0f, "DCA [cm]"}});
-    histosConversionPhoton.add("DCAv0Pos", "DCAv0Pos", kTH1F, {axisDCA});
-    histosConversionPhoton.add("DCAv0Neg", "DCAv0Neg", kTH1F, {axisDCA});
-    histosConversionPhoton.add("DCAv0cosPA", "DCAv0cosPA", kTH1F, {{100, v0setting_cospa, 1.0f, "cos#theta"}});
-    histosConversionPhoton.add("DCAv0Radius", "DCAv0Radius", kTH1F, {axisV0Radius});
-
-    histosConversionPhoton.add("RecGenPhotonEnergyDifference", "RecGenPhotonEnergyDifference", kTH1F, {{100, -0.5f, 0.5f, "E_{rec} - E_{gen} [GeV]"}}); 
-    histosConversionPhoton.add("RecGenPhotondEvsGenE", "RecGenPhotondEvsGenE", kTH2F, {{100, -0.5f, 0.5f, "E_{rec} - E_{gen} [GeV]"}, axisPhotonPt}); 
-    histosConversionPhoton.add("RecGenPhotonPtDifference", "RecGenPhotonPtDifference", kTH1F, {{100, -0.5, 0.5, "p_{T, rec} - p_{T, gen} [GeV]"}}); 
-    histosConversionPhoton.add("RecGenPhotondPtvsGenPt", "RecGenPhotondPtvsGenPt", kTH2F, {{100, -0.5, 0.5, "p_{T, rec} - p_{T, gen} [GeV]"}, axisPhotonPt}); 
-    histosConversionPhoton.add("MismatchPhoton", "MismatchPhoton", kTH1F, {{100, 0, maxPhotonPt, "p_{T} [GeV]"}});
-
-    // lambda-related histograms:
-    histosLambda.add("LambdaEta", "LambdaEta", kTH1F, {axisEta});
-    histosLambda.add("LambdaMass", "LambdaMass", kTH1F, {axisLambdaMass});
-    histosLambda.add("LambdaPt", "LambdaPt", kTH1F, {axisLambdaPt});
-    histosLambda.add("posTPCPr", "posTPCPr", kTH1F, {{100, -5, 5, "N_{#sigma_{p}}"}});
-    histosLambda.add("negTPCPr", "negTPCPr", kTH1F, {{100, -5, 5, "N_{#sigma_{p}}"}});     
-    histosLambda.add("posTPCPi", "posTPCPi", kTH1F, {{100, -5, 5, "N_{#sigma_{#pi}}"}});
-    histosLambda.add("negTPCPi", "negTPCPi", kTH1F, {{100, -5, 5, "N_{#sigma_{#pi}}"}}); 
-    histosLambda.add("LambdaArmenterosPodolanski", "LambdaArmenterosPodolanski", kTH2F, {axisAlpha, axisQt}); 
-    histosLambda.add("DCAv0Daughters", "DCAv0Daughters", kTH1F, {{100, 0.0f, 1.0f, "DCA [cm]"}});
-    histosLambda.add("DCAv0Pos", "DCAv0Pos", kTH1F, {axisDCA});
-    histosLambda.add("DCAv0Neg", "DCAv0Neg", kTH1F, {axisDCA});
-    histosLambda.add("DCAv0cosPA", "DCAv0cosPA", kTH1F, {{100, v0setting_cospa, 1.0f, "cos#theta"}});
-    histosLambda.add("DCAv0Radius", "DCAv0Radius", kTH1F, {axisV0Radius});
-
-    histosLambda.add("RecGenLambdaEnergyDifference", "RecGenLambdaEnergyDifference", kTH1F, {{100, -0.5, 0.5, "E_{rec} - E_{gen} [GeV]"}}); 
-    histosLambda.add("RecGenLambdadEvsGenE", "RecGenLambdadEvsGenE", kTH2F, {{100, -0.5, 0.5, "E_{rec} - E_{gen} [GeV]"}, axisLambdaPt}); 
-    histosLambda.add("RecGenLambdaPtDifference", "RecGenLambdaPtDifference", kTH1F, {{100, -0.5, 0.5, "p_{T, rec} - p_{T, gen} [GeV]"}}); 
-    histosLambda.add("RecGenLambdadPtvsGenPt", "RecGenLambdadPtvsGenPt", kTH2F, {{100, -0.5, 0.5, "p_{T, rec} - p_{T, gen} [GeV]"}, axisLambdaPt}); 
-    histosLambda.add("MismatchLambda", "MismatchLambda", kTH1F, {{100, 0, maxLambdaPt, "p_{T} [GeV]"}});
-    }
-
-  void processCollisions(Collision const& collision) {
-    histosCollisions.fill(HIST("vertexZ"), collision.posZ());
-    if (abs(collision.posZ()) < zVertexCut) histosCollisions.fill(HIST("eventCounter"), 0.5);
+    histosCollisions.add("vertexZ", "Primary Vertex Z Coordinate", kTH1F, {axisVertexZ});
+    histosCollisions.add("eventCounter", "Event Counter", kTH1D, {{1, 0, 1, " Accepted Events Count"}});
   }
-  PROCESS_SWITCH(Sigma0Reconstruction, processCollisions, "Process general collisions info", true);
 
-  void processGeneratedCollisions(McCollision const& collision, McParticles const& mcparticles) {
+  void process(Collision const& collision) {
+    histosCollisions.fill(HIST("vertexZ"), collision.posZ());
+    if (abs(collision.posZ()) < zVertexCut && collision.posZ() != 0.0f) histosCollisions.fill(HIST("eventCounter"), 0);
+  }
+};
+
+struct ProcessGeneratedEvents {
+  Configurable<int> nBinsPt{"nBinsPt", 100, "N bins in pT histo"};
+  Configurable<float> maxPhotonPt{"maxPhotonPt", 1.0f, "Maximum Photon Transverse Momentum [GeV]"};
+  Configurable<float> maxLambdaPt{"maxLambdaPt", 5.0f, "Maximum Lambda Hyperon Transverse Momentum [GeV]"};
+  Configurable<float> maxSigma0Pt{"maxSigma0Pt", 5.0f, "Maximum Sigma^0 Hyperon Transverse Momentum [GeV]"};
+
+  HistogramRegistry histosMC{"histosMC", {}, OutputObjHandlingPolicy::AnalysisObject};
+
+  void init(InitContext const&) {
+    const AxisSpec axisEta{150, -1.5f, 1.5f, "#eta"};
+    const AxisSpec axisPhotonPt{nBinsPt, 0.0f, maxPhotonPt, "p_{T, #gamma} [GeV]"};
+    const AxisSpec axisLambdaPt{nBinsPt, 0.0f, maxLambdaPt, "p_{T, #Lambda} [GeV]"};
+    const AxisSpec axisSigma0Pt{nBinsPt, 0.0f, maxSigma0Pt, "p_{T, #Sigma^{0}} [GeV]"};
+
+    histosMC.add("mcGenEta", "Pseudorapidity Of Generated Tracks (MC)", kTH1F, {axisEta});
+    histosMC.add("mcGenPt", "Transverse Momentum Of Generated Tracks (MC)", kTH1F, {{100, 0.0f, 10.0f, "p_{T} [GeV]"}});
+    histosMC.add("mcGenPhotonPt", "Transverse Momentum Of Generated Photons (MC)", kTH1F, {axisPhotonPt});    
+    histosMC.add("mcGenLambdaPt", "Transverse Momentum Of Generated #Lambda Hyperons (MC)", kTH1F, {axisLambdaPt});
+    histosMC.add("mcGenSigma0Pt", "Transverse Momentum Of Generated #Sigma^{0} Hyperons (MC)", kTH1F, {axisSigma0Pt});
+    histosMC.add("mcGenPhotonFromSigma0Pt", "Transverse Momentum Of Generated Photons From #Sigma^{0} Hyperons (MC)", kTH1F, {axisPhotonPt});
+    histosMC.add("mcGenLambdaFromSigma0Pt", "Transverse Momentum Of Generated #Lambda Hyperons From #Sigma^{0} Hyperons (MC)", kTH1F, {axisLambdaPt});
+  }
+
+  void process(McCollision const&, McParticles const& mcparticles) {
     for (auto const& mcparticle: mcparticles) {
       histosMC.fill(HIST("mcGenEta"), mcparticle.eta());
       histosMC.fill(HIST("mcGenPt"), mcparticle.pt());
       if (abs(mcparticle.pdgCode()) == 3122) {
         histosMC.fill(HIST("mcGenLambdaPt"), mcparticle.pt());
         auto const& mother = mcparticle.mothers_first_as<McParticles>();
-        if (abs(mother.pdgCode()) == 3212) histosMC.fill(HIST("mcGenLambdaFromSigmaPt"), mcparticle.pt());
+        if (abs(mother.pdgCode()) == 3212) histosMC.fill(HIST("mcGenLambdaFromSigma0Pt"), mcparticle.pt());
       }
 
       if (mcparticle.pdgCode() == 22) {
         histosMC.fill(HIST("mcGenPhotonPt"), mcparticle.pt());
         auto const& mother = mcparticle.mothers_first_as<McParticles>();
-        if (abs(mother.pdgCode()) == 3212) histosMC.fill(HIST("mcGenPhotonFromSigmaPt"), mcparticle.pt());
+        if (abs(mother.pdgCode()) == 3212) histosMC.fill(HIST("mcGenPhotonFromSigma0Pt"), mcparticle.pt());
       }
 
       if (abs(mcparticle.pdgCode()) == 3212) {
-        histosMC.fill(HIST("mcGenSigmaPt"), mcparticle.pt());
+        histosMC.fill(HIST("mcGenSigma0Pt"), mcparticle.pt());
       }
     }
   }
-  PROCESS_SWITCH(Sigma0Reconstruction, processGeneratedCollisions, "Process MC collisions info", true);
+};
 
-  void processConversionPhotons(filteredCollision const& collision, filteredV0s const& v0s, filteredPhotonDaughterTracks const&, McParticles const&) {
+struct ProcessConversionPhotons {
+  Produces<ConversionPhoton> AddConversionPhoton;
+
+  float electronMass = o2::constants::physics::MassElectron;
+
+  Configurable<float> zVertexCut{"zVertexCut", 10.0f, "Maximum Primary Vertex Z coordinate [cm]"};
+  Filter zVertexFilter = (nabs(collision::posZ) < zVertexCut);
+  Filter zVertexErrorFilter = (collision::posZ != 0.0f);
+  Filter eventSelectionFilter = (evsel::sel8 == true);
+  using filteredCollision = Filtered<Join<Collisions, EvSels>>::iterator;
+
+  Configurable<int> nBinsPt{"nBinsPt", 100, "N bins in pT histo"};
+  Configurable<int> nBinsMass{"nBinsMass", 100, "N bins in invariant mass histo"};
+  Configurable<float> etaCut{"etaCut", 1.2f, "Maximum Pseudorapidity"};
+
+  Configurable<float> v0setting_dcav0dau{"v0setting_dcav0dau", 1.0f, "DCA V0 Daughters [cm]"};
+  Configurable<float> v0setting_dcapostopv{"v0setting_dcapostopv", 0.06f, "DCA Pos To PV [cm]"};
+  Configurable<float> v0setting_dcanegtopv{"v0setting_dcanegtopv", 0.06f, "DCA Neg To PV [cm]"};
+  Configurable<double> v0setting_cospa{"v0setting_cospa", 0.995, "V0 CosPA"};
+  Configurable<float> v0setting_radius{"v0setting_radius", 0.0f, "V0 Radius [cm]"};
+
+  Filter preV0Filter = (nabs(v0data::dcapostopv) > v0setting_dcapostopv && nabs(v0data::dcanegtopv) > v0setting_dcanegtopv && v0data::dcaV0daughters < v0setting_dcav0dau);
+  using filteredV0s = Filtered<Join<V0Datas, McV0Labels>>;
+
+  Configurable<float> maxPhotonMass{"maxPhotonMass", 0.1f, "Maximum Electron-Positron Invariant Mass [GeV]"};
+  Configurable<float> maxPhotonPt{"maxPhotonPt", 2.5f, "Maximum Photon Transverse Momentum [GeV]"};
+  Configurable<float> maxTpcNSigmaEl{"maxTpcNSigmaEl", 3.0f, "Maximum N_{#sigma_{e}} from TPC signal"};
+  Configurable<float> maxTrackDCA{"maxTrackDCA", 1.0f, "Maximum Track DCA [cm]"};
+  Configurable<float> maxPhotonAlpha{"maxPhotonAlpha", 0.7f, "Maximum Photon Decay Asymmetry"};
+  Configurable<float> maxPhotonQt{"maxPhotonQt", 0.05f, "Maximum Photon Decay q_{T} [GeV]"};
+
+  Filter etaFilter = (nabs(track::eta) < etaCut);
+  Filter dcaFilter = (nabs(track::dcaXY) < maxTrackDCA);
+
+  using photonDaughterTracks = Join<Tracks, TracksDCA, pidTPCEl, McTrackLabels>;
+  using filteredPhotonDaughterTracks = Filtered<photonDaughterTracks>;
+
+  HistogramRegistry histosConversionPhoton{"histosConversionPhoton", {}, OutputObjHandlingPolicy::AnalysisObject};
+
+  void init(InitContext const&) {
+    const AxisSpec axisEta{100, -etaCut, etaCut, "#eta"};
+    const AxisSpec axisPhotonMass{nBinsMass, 0.0f, maxPhotonMass, "M_{e^{+}e^{-}} [GeV]"};
+    const AxisSpec axisPhotonPt{nBinsPt, 0.0f, maxPhotonPt, "p_{T} [GeV]"};
+    const AxisSpec axisNsigmaE{100, -maxTpcNSigmaEl, maxTpcNSigmaEl, "N_{#sigma_{e}}"};
+    const AxisSpec axisDCA{100, -5.0f, 5.0f, "DCA [cm]"};
+    const AxisSpec axisV0Radius{100, 0.0f, 50.0f, "V0 Radius [cm]"};
+    const AxisSpec axisAlpha{100, -1.0f, 1.0f, "#alpha"};
+    const AxisSpec axisQt{100, 0.0f, 0.25f, "q_{T} [GeV]"};
+
+    histosConversionPhoton.add("photonEta", "Pseudorapidity Of Photon Candidates", kTH1F, {axisEta});
+    histosConversionPhoton.add("photonMass", "Invariant Mass Of Photon Candidates", kTH1F, {axisPhotonMass});
+    histosConversionPhoton.add("photonPt", "Transverse Momentum Of Photon Candidates", kTH1F, {axisPhotonPt});
+
+    histosConversionPhoton.add("posTPCEl", "N_{#sigma, e} For Positively Charged Decay Vertex Daughter Tracks In TPC", kTH1F, {axisNsigmaE});
+    histosConversionPhoton.add("negTPCEl", "N_{#sigma, e} For Negatively Charged Decay Vertex Daughter Tracks In TPC", kTH1F, {axisNsigmaE});
+    histosConversionPhoton.add("DCAv0Daughters", "DCA Between Decay Vertex Daughter Tracks", kTH1F, {{100, 0.0f, v0setting_dcav0dau, "DCA [cm]"}});
+    histosConversionPhoton.add("DCAv0Pos", "DCA Between Decay Vertex And Positively Charged Daughter Track", kTH1F, {axisDCA});
+    histosConversionPhoton.add("DCAv0Neg", "DCA Between Decay Vertex And Negatively Charged Daughter Track", kTH1F, {axisDCA});
+    histosConversionPhoton.add("v0cosPA", "Cosine Of Decay Vertex Pointing Angle", kTH1F, {{100, v0setting_cospa, 1.0f, "cos#theta"}});
+    histosConversionPhoton.add("DCAv0Radius", "Decay Vertex Transverse Radius", kTH1F, {axisV0Radius});
+    histosConversionPhoton.add("photonArmenterosPodolanski", "Armenteros-Podolanski Plot For Photon Candidates", kTH2F, {axisAlpha, axisQt}); 
+
+    histosConversionPhoton.add("RecGenPhotonEnergyDifference", "Energy Difference Between Reconstructed And Generated Photon", kTH1F, {{100, -0.5f, 0.5f, "E_{rec} - E_{gen} [GeV]"}}); 
+    histosConversionPhoton.add("RecGenPhotondEvsGenE", "Energy Difference Between Reconstructed And Generated Photon vs. Energy", kTH2F, {{100, -0.5f, 0.5f, "E_{rec} - E_{gen} [GeV]"}, {100, 0.0f, maxPhotonPt, "E_{gen} [GeV]"}}); 
+    histosConversionPhoton.add("RecGenPhotonPtDifference", "Transverse Momentum Difference Between Reconstructed And Generated Photon", kTH1F, {{100, -0.5f, 0.5f, "p_{T, rec} - p_{T, gen} [GeV]"}}); 
+    histosConversionPhoton.add("RecGenPhotondPtvsGenPt", "Transverse Momentum Difference Between Reconstructed And Generated Photon vs. Transverse Momentum", kTH2F, {{100, -0.5f, 0.5f, "p_{T, rec} - p_{T, gen} [GeV]"}, {100, 0.0f, maxPhotonPt, "p_{T, gen} [GeV]"}}); 
+    histosConversionPhoton.add("MismatchPhoton", "Transverse Momentum Of Mismatched Photons NOT From #Sigma^{0} Hyperons", kTH1F, {{100, 0.0f, maxPhotonPt, "p_{T} [GeV]"}});
+  }
+
+  void process(filteredCollision const& collision, filteredV0s const& v0s, filteredPhotonDaughterTracks const&, McParticles const&) {
     for (auto const& v0: v0s) {
-      // "Filter" on dynamic columns
       if (v0.v0cosPA() < v0setting_cospa) continue;
       if (v0.v0radius() < v0setting_radius) continue;
       if (abs(v0.alpha()) > maxPhotonAlpha) continue;
@@ -232,18 +205,17 @@ struct Sigma0Reconstruction {
 
       float const tpcNPosSigmaEl = posPhotonDaughterTrack.tpcNSigmaEl();
       float const tpcNNegSigmaEl = negPhotonDaughterTrack.tpcNSigmaEl();
-
       if (abs(tpcNPosSigmaEl) > maxTpcNSigmaEl || abs(tpcNNegSigmaEl) > maxTpcNSigmaEl) continue;
 
-      float photonPx = posPhotonDaughterTrack.px() + negPhotonDaughterTrack.px();
-      float photonPy = posPhotonDaughterTrack.py() + negPhotonDaughterTrack.py();
-      float photonPz = posPhotonDaughterTrack.pz() + negPhotonDaughterTrack.pz();
-      float electronEnergy = std::sqrt(negPhotonDaughterTrack.p()*negPhotonDaughterTrack.p() + electronMass*electronMass);
-      float positronEnergy = std::sqrt(posPhotonDaughterTrack.p()*posPhotonDaughterTrack.p() + electronMass*electronMass);
-      float photonEnergy = electronEnergy + positronEnergy;
-      TLorentzVector photon(photonPx, photonPy, photonPz, photonEnergy);
+      float const photonPx = posPhotonDaughterTrack.px() + negPhotonDaughterTrack.px();
+      float const photonPy = posPhotonDaughterTrack.py() + negPhotonDaughterTrack.py();
+      float const photonPz = posPhotonDaughterTrack.pz() + negPhotonDaughterTrack.pz();
+      float const electronEnergy = std::sqrt(negPhotonDaughterTrack.p()*negPhotonDaughterTrack.p() + electronMass*electronMass);
+      float const positronEnergy = std::sqrt(posPhotonDaughterTrack.p()*posPhotonDaughterTrack.p() + electronMass*electronMass);
+      float const photonEnergy = electronEnergy + positronEnergy;
+      TLorentzVector const photon(photonPx, photonPy, photonPz, photonEnergy);
       if (photon.Pt() > maxPhotonPt) continue;
-      if (photon.M() > maxPhotonMass || photon.M() < 0) continue;
+      if (photon.M() > maxPhotonMass || photon.M() < 0.0f) continue;
 
       histosConversionPhoton.fill(HIST("posTPCEl"), tpcNPosSigmaEl);
       histosConversionPhoton.fill(HIST("negTPCEl"), tpcNNegSigmaEl);
@@ -251,7 +223,7 @@ struct Sigma0Reconstruction {
       histosConversionPhoton.fill(HIST("DCAv0Daughters"), v0.dcaV0daughters());
       histosConversionPhoton.fill(HIST("DCAv0Pos"), v0.dcapostopv());
       histosConversionPhoton.fill(HIST("DCAv0Neg"), v0.dcanegtopv());
-      histosConversionPhoton.fill(HIST("DCAv0cosPA"), v0.v0cosPA());
+      histosConversionPhoton.fill(HIST("v0cosPA"), v0.v0cosPA());
       histosConversionPhoton.fill(HIST("DCAv0Radius"), v0.v0radius());
       histosConversionPhoton.fill(HIST("photonArmenterosPodolanski"), v0.alpha(), v0.qtarm());
 
@@ -259,7 +231,7 @@ struct Sigma0Reconstruction {
       histosConversionPhoton.fill(HIST("photonPt"), photon.Pt());
       histosConversionPhoton.fill(HIST("photonEta"), photon.Eta());
 
-      AddConversionPhoton(collision.bcId(), photon.E(), photon.P(), photon.Pt());
+      AddConversionPhoton(collision.bcId(), photon.Px(), photon.Py(), photon.Pz(), photon.E());
 
       if (v0.has_mcParticle()) {
         auto const& v0mcParticle = v0.mcParticle();
@@ -281,9 +253,90 @@ struct Sigma0Reconstruction {
       }
     }   
   }
-  PROCESS_SWITCH(Sigma0Reconstruction, processConversionPhotons, "Process conversion photons", true);
+};
 
-  void processLambdas(filteredCollision const& collision, filteredV0s const& v0s, filteredLambdaDaughterTracks const&, McParticles const&) {
+struct ProcessLambdaHyperons {
+  Produces<LambdaHyperon> AddLambdaHyperon;
+
+  float chargedPionMass = o2::constants::physics::MassPionCharged;
+  float protonMass = o2::constants::physics::MassProton;
+
+  Configurable<float> zVertexCut{"zVertexCut", 10.0f, "Maximum Primary Vertex Z coordinate [cm]"};
+  Filter zVertexFilter = (nabs(collision::posZ) < zVertexCut);
+  Filter zVertexErrorFilter = (collision::posZ != 0.0f);
+  Filter eventSelectionFilter = (evsel::sel8 == true);
+  using filteredCollision = Filtered<Join<Collisions, EvSels>>::iterator;
+    
+  Configurable<int> nBinsPt{"nBinsPt", 100, "N bins in pT histo"};
+  Configurable<int> nBinsMass{"nBinsMass", 100, "N bins in invariant mass histo"};
+  Configurable<float> etaCut{"etaCut", 1.2f, "Maximum Pseudorapidity"};
+
+  Configurable<float> v0setting_dcav0dau{"v0setting_dcav0dau", 1.0f, "DCA V0 Daughters [cm]"};
+  Configurable<float> v0setting_dcapostopv{"v0setting_dcapostopv", 0.06f, "DCA Pos To PV [cm]"};
+  Configurable<float> v0setting_dcanegtopv{"v0setting_dcanegtopv", 0.06f, "DCA Neg To PV [cm]"};
+  Configurable<double> v0setting_cospa{"v0setting_cospa", 0.995, "V0 CosPA"};
+  Configurable<float> v0setting_radius{"v0setting_radius", 0.0f, "V0 Radius [cm]"};
+
+  Configurable<float> maxLambdaAlpha{"maxLambdaAlpha", 0.9f, "Maximum Lambda Decay Asymmetry"};
+  Configurable<float> minLambdaAlpha{"minLambdaAlpha", 0.4f, "Minimum Lambda Decay Asymmetry"};
+  Configurable<float> maxLambdaQt{"maxLambdaQt", 0.13f, "Maximum Lambda Decay q_{T} [GeV]"};
+  Configurable<float> minLambdaQt{"minLambdaQt", 0.02f, "Minimum Lambda Decay  [GeV]"};
+
+  // filter can only be applied to static columns
+  Filter preV0Filter = (nabs(v0data::dcapostopv) > v0setting_dcapostopv && nabs(v0data::dcanegtopv) > v0setting_dcanegtopv && v0data::dcaV0daughters < v0setting_dcav0dau);
+  using filteredV0s = Filtered<Join<V0Datas, McV0Labels>>;
+
+  // Tracks-related:
+  Configurable<float> minLambdaMass{"minLambdaMass", 1.10f, "Minimum Lambda Hyperon Invariant Mass [GeV]"};
+  Configurable<float> maxLambdaMass{"maxLambdaMass", 1.13f, "Maximum Lambda Hyperon Invariant Mass [GeV]"};
+  Configurable<float> maxLambdaPt{"maxLambdaPt", 5.0f, "Maximum Lambda Hyperon Transverse Momentum [GeV]"};
+
+  Configurable<float> maxTpcNSigmaPr{"maxTpcNSigmaPr", 3.0f, "Maximum N_{#sigma_{p}} from TPC signal"};
+  Configurable<float> maxTpcNSigmaPi{"maxTpcNSigmaPi", 3.0f, "Maximum N_{#sigma_{#pi}} from TPC signal"};
+
+  Configurable<float> maxTrackDCA{"maxTrackDCA", 1.0f, "Maximum Track DCA [cm]"};
+
+  Filter etaFilter = (nabs(track::eta) < etaCut);
+  Filter dcaFilter = (nabs(track::dcaXY) < maxTrackDCA);
+  using LambdaDaughterTracks = Join<Tracks, TracksDCA, pidTPCPi, pidTPCPr, McTrackLabels>;
+  using filteredLambdaDaughterTracks = Filtered<LambdaDaughterTracks>;
+
+  HistogramRegistry histosLambda{"histosLambda", {}, OutputObjHandlingPolicy::AnalysisObject};
+
+  void init(InitContext const&) {
+    const AxisSpec axisLambdaMass{nBinsMass, minLambdaMass, maxLambdaMass, "M_{p#pi} [GeV]"};
+    const AxisSpec axisLambdaPt{nBinsPt, 0.0f, maxLambdaPt, "p_{T} [GeV]"};
+    const AxisSpec axisEta{150, -etaCut, etaCut, "#eta"};
+    const AxisSpec axisDCA{100, -5.0f, 5.0f, "DCA [cm]"};
+    const AxisSpec axisV0Radius{100, 0.0f, 50.0f, "V0 Radius [cm]"};
+    const AxisSpec axisAlpha{100, -1.0f, 1.0f, "#alpha"};
+    const AxisSpec axisQt{100, 0.0f, 0.25f, "q_{T} [GeV]"};
+    const AxisSpec axisNsigmaPr{100, -maxTpcNSigmaPr, maxTpcNSigmaPr, "N_{#sigma_{p}}"};
+    const AxisSpec axisNsigmaPi{100, -maxTpcNSigmaPi, maxTpcNSigmaPi, "N_{#sigma_{#pi}}"};
+
+    histosLambda.add("LambdaEta", "Pseudorapidity Of #Lambda Hyperon Candidates", kTH1F, {axisEta});
+    histosLambda.add("LambdaMass", "Invariant Mass Of #Lambda Hyperon Candidates", kTH1F, {axisLambdaMass});
+    histosLambda.add("LambdaPt", "Transverse Momentum Of #Lambda Hyperon Candidates", kTH1F, {axisLambdaPt});
+
+    histosLambda.add("posTPCPr", "N_{#sigma, p} For Positively Charged Decay Vertex Daughter Tracks In TPC", kTH1F, {axisNsigmaPr});
+    histosLambda.add("negTPCPr", "N_{#sigma, p} For Negatively Charged Decay Vertex Daughter Tracks In TPC", kTH1F, {axisNsigmaPr});     
+    histosLambda.add("posTPCPi", "N_{#sigma, #pi} For Positively Charged Decay Vertex Daughter Tracks In TPC", kTH1F, {axisNsigmaPi});
+    histosLambda.add("negTPCPi", "N_{#sigma, #pi} For Negatively Charged Decay Vertex Daughter Tracks In TPC", kTH1F, {axisNsigmaPi}); 
+    histosLambda.add("DCAv0Daughters", "DCA Between Decay Vertex Daughter Tracks", kTH1F, {{100, 0.0f, v0setting_dcav0dau, "DCA [cm]"}});
+    histosLambda.add("DCAv0Pos", "DCA Between Decay Vertex And Positively Charged Daughter Track", kTH1F, {axisDCA});
+    histosLambda.add("DCAv0Neg", "DCA Between Decay Vertex And Negatively Charged Daughter Track", kTH1F, {axisDCA});
+    histosLambda.add("v0cosPA", "Cosine Of Decay Vertex Pointing Angle", kTH1F, {{100, v0setting_cospa, 1.0f, "cos#theta"}});
+    histosLambda.add("DCAv0Radius", "Decay Vertex Transverse Radius", kTH1F, {axisV0Radius});
+    histosLambda.add("LambdaArmenterosPodolanski", "Armenteros-Podolanski Plot For #Lambda Hyperon Candidates", kTH2F, {axisAlpha, axisQt}); 
+
+    histosLambda.add("RecGenLambdaEnergyDifference", "Energy Difference Between Reconstructed And Generated #Lambda Hyperon", kTH1F, {{100, -0.5f, 0.5f, "E_{rec} - E_{gen} [GeV]"}}); 
+    histosLambda.add("RecGenLambdadEvsGenE", "Energy Difference Between Reconstructed And Generated #Lambda Hyperon vs. Energy", kTH2F, {{100, -0.5f, 0.5f, "E_{rec} - E_{gen} [GeV]"}, {100, 0.0f, maxLambdaPt, "E_{gen} [GeV]"}}); 
+    histosLambda.add("RecGenLambdaPtDifference", "Transverse Momentum Difference Between Reconstructed And Generated #Lambda Hyperon", kTH1F, {{100, -0.5f, 0.5f, "p_{T, rec} - p_{T, gen} [GeV]"}}); 
+    histosLambda.add("RecGenLambdadPtvsGenPt", "Transverse Momentum Difference Between Reconstructed And Generated #Lambda Hyperon vs. Transverse Momentum", kTH2F, {{100, -0.5f, 0.5f, "p_{T, rec} - p_{T, gen} [GeV]"}, {100, 0.0f, maxLambdaPt, "p_{T, gen} [GeV]"}}); 
+    histosLambda.add("MismatchLambda", "Transverse Momentum Of Mismatched #Lambda Hyperons NOT From #Sigma^{0} Hyperons", kTH1F, {{100, 0.0f, maxLambdaPt, "p_{T} [GeV]"}});
+  }
+
+  void process(filteredCollision const& collision, filteredV0s const& v0s, filteredLambdaDaughterTracks const&, McParticles const&) {
     for (auto const& v0: v0s) {
       // "Filter" on dynamic columns
       if (v0.v0cosPA() < v0setting_cospa) continue;
@@ -301,7 +354,7 @@ struct Sigma0Reconstruction {
       float const tpcNNegSigmaPi = negLambdaDaughterTrack.tpcNSigmaPi();
 
       bool posTraskIsProton = abs(tpcNPosSigmaPr) < maxTpcNSigmaPr;
-      bool posTraskIsPion = abs(tpcNPosSigmaPr) < maxTpcNSigmaPi;
+      bool posTraskIsPion = abs(tpcNPosSigmaPi) < maxTpcNSigmaPi;
 
       bool negTraskIsProton = abs(tpcNNegSigmaPr) < maxTpcNSigmaPr;
       bool negTraskIsPion = abs(tpcNNegSigmaPi) < maxTpcNSigmaPi;
@@ -314,9 +367,9 @@ struct Sigma0Reconstruction {
 
       if (!isLambda && !isAntiLambda) continue;
 
-      float LambdaPx = posLambdaDaughterTrack.px() + negLambdaDaughterTrack.px();
-      float LambdaPy = posLambdaDaughterTrack.py() + negLambdaDaughterTrack.py();
-      float LambdaPz = posLambdaDaughterTrack.pz() + negLambdaDaughterTrack.pz();
+      float const LambdaPx = posLambdaDaughterTrack.px() + negLambdaDaughterTrack.px();
+      float const LambdaPy = posLambdaDaughterTrack.py() + negLambdaDaughterTrack.py();
+      float const LambdaPz = posLambdaDaughterTrack.pz() + negLambdaDaughterTrack.pz();
       float protonEnergy = 0;
       float pionEnergy = 0;
       if (isLambda) {
@@ -326,8 +379,8 @@ struct Sigma0Reconstruction {
         protonEnergy = std::sqrt(negLambdaDaughterTrack.p()*negLambdaDaughterTrack.p() + protonMass*protonMass);
         pionEnergy = std::sqrt(posLambdaDaughterTrack.p()*posLambdaDaughterTrack.p() + chargedPionMass*chargedPionMass);
       }
-      float LambdaEnergy = protonEnergy + pionEnergy;
-      TLorentzVector Lambda(LambdaPx, LambdaPy, LambdaPz, LambdaEnergy);
+      float const LambdaEnergy = protonEnergy + pionEnergy;
+      TLorentzVector const Lambda(LambdaPx, LambdaPy, LambdaPz, LambdaEnergy);
       if (Lambda.Pt() > maxLambdaPt) continue;
       if (Lambda.M() > maxLambdaMass || Lambda.M() < minLambdaMass) continue;
 
@@ -342,7 +395,7 @@ struct Sigma0Reconstruction {
       histosLambda.fill(HIST("DCAv0Daughters"), v0.dcaV0daughters());
       histosLambda.fill(HIST("DCAv0Pos"), v0.dcapostopv());
       histosLambda.fill(HIST("DCAv0Neg"), v0.dcanegtopv());
-      histosLambda.fill(HIST("DCAv0cosPA"), v0.v0cosPA());
+      histosLambda.fill(HIST("v0cosPA"), v0.v0cosPA());
       histosLambda.fill(HIST("DCAv0Radius"), v0.v0radius());
       histosLambda.fill(HIST("LambdaArmenterosPodolanski"), v0.alpha(), v0.qtarm());
 
@@ -350,7 +403,7 @@ struct Sigma0Reconstruction {
       histosLambda.fill(HIST("LambdaPt"), Lambda.Pt());
       histosLambda.fill(HIST("LambdaEta"), Lambda.Eta());
 
-      AddLambdaHyperon(collision.bcId(), Lambda.E(), Lambda.P(), Lambda.Pt());
+      AddLambdaHyperon(collision.bcId(), Lambda.Px(), Lambda.Py(), Lambda.Pz(), Lambda.E());
 
       if (v0.has_mcParticle()) {
         auto const& v0mcParticle = v0.mcParticle();
@@ -372,11 +425,50 @@ struct Sigma0Reconstruction {
       }
     }   
   }
-  PROCESS_SWITCH(Sigma0Reconstruction, processLambdas, "Process Lambda Hyperons", true);
+};
+
+struct ReconstructSigma0viaPCM {
+  Configurable<float> zVertexCut{"zVertexCut", 10.0f, "Maximum Primary Vertex Z coordinate [cm]"};
+  Filter zVertexFilter = (nabs(collision::posZ) < zVertexCut);
+  Filter zVertexErrorFilter = (collision::posZ != 0.0f);
+  Filter eventSelectionFilter = (evsel::sel8 == true);
+  using filteredCollision = Filtered<Join<Collisions, EvSels>>::iterator;
+
+  Configurable<int> nBinsPt{"nBinsPt", 100, "N bins in pT histo"};
+  Configurable<int> nBinsMass{"nBinsMass", 100, "N bins in invariant mass histo"};
+  Configurable<float> minSigma0Mass{"minSigma0Mass", 1.1f, "Maximum Sigma^0 Invariant Mass [GeV]"};
+  Configurable<float> maxSigma0Mass{"maxSigma0Mass", 1.3f, "Maximum Sigma^0 Invariant Mass [GeV]"};
+  Configurable<float> maxSigma0Pt{"maxSigma0Pt", 5.0f, "Maximum Sigma^0 Hyperon Transverse Momentum [GeV]"};
+
+  HistogramRegistry histosSigma0{"histosSigma0", {}, OutputObjHandlingPolicy::AnalysisObject};
+
+  void init(InitContext const&) {
+    const AxisSpec axisSigma0Mass{nBinsMass, minSigma0Mass, maxSigma0Mass, "M_{#Lambda#gamma_{PCM}} [GeV]"};
+    const AxisSpec axisSigma0Pt{nBinsPt, 0.0f, maxSigma0Pt, "p_{T, candidate} [GeV]"};
+
+    histosSigma0.add("Sigma0PCM", "#Sigma^{0} Candidates From Conversion Photons", kTH2F, {axisSigma0Mass, axisSigma0Pt});
+  }
+
+  void process(filteredCollision const&, ConversionPhoton const& photons, LambdaHyperon const& Lambdas) {
+    for (auto const& [Lambda, photon]: combinations(CombinationsFullIndexPolicy(Lambdas, photons))) {
+      TLorentzVector const LambdaLorentzVector(Lambda.px(), Lambda.py(), Lambda.pz(), Lambda.e());
+      TLorentzVector const photonLorentzVector(photon.px(), photon.py(), photon.pz(), photon.e());
+      TLorentzVector const Sigma0LorentzVector = LambdaLorentzVector + photonLorentzVector;
+      float const Sigma0Mass = Sigma0LorentzVector.M();
+      float const Sigma0Pt = Sigma0LorentzVector.Pt();
+      if (Sigma0Mass < maxSigma0Mass && Sigma0Mass > minSigma0Mass) {
+        histosSigma0.fill(HIST("Sigma0PCM"), Sigma0Mass, Sigma0Pt);           
+      }
+    }
+  }
 };
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc) {
   return WorkflowSpec{
-    adaptAnalysisTask<Sigma0Reconstruction>(cfgc)
+    adaptAnalysisTask<ProcessCollisions>(cfgc),
+    adaptAnalysisTask<ProcessGeneratedEvents>(cfgc),
+    adaptAnalysisTask<ProcessConversionPhotons>(cfgc),
+    adaptAnalysisTask<ProcessLambdaHyperons>(cfgc),
+    adaptAnalysisTask<ReconstructSigma0viaPCM>(cfgc)
   };
 }
