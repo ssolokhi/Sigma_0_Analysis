@@ -3,7 +3,7 @@
 // All rights not expressly granted are reserved.
 //
 // This software is distributed under the terms of the GNU General Public
-// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
+// License v3 (GPL Version 3), copied verbatim in the file "LICENSE".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -89,6 +89,11 @@ struct ProcessGeneratedEvents {
     const AxisSpec axisPhotonPt{nBinsPt, 0.0f, maxPhotonPt, "p_{T, #gamma} [GeV]"};
     const AxisSpec axisLambdaPt{nBinsPt, 0.0f, maxLambdaPt, "p_{T, #Lambda} [GeV]"};
     const AxisSpec axisSigma0Pt{nBinsPt, 0.0f, maxSigma0Pt, "p_{T, #Sigma^{0}} [GeV]"};
+    const AxisSpec axisDCADaughters{100, 0.0f, 1.0f, "DCA [cm]"};
+    const AxisSpec axisDCA{100, -5.0f, 5.0f, "DCA [cm]"};
+    const AxisSpec axisV0Radius{100, 0.0f, 50.0f, "V0 Radius [cm]"};
+    const AxisSpec axisAlpha{100, -1.0f, 1.0f, "#alpha"};
+    const AxisSpec axisQt{100, 0.0f, 0.25f, "q_{T} [GeV]"};
 
     histosMC.add("mcGenEta", "Pseudorapidity Of Generated Tracks (MC)", kTH1F, {axisEta});
     histosMC.add("mcGenPt", "Transverse Momentum Of Generated Tracks (MC)", kTH1F, {{100, 0.0f, 10.0f, "p_{T} [GeV]"}});
@@ -97,9 +102,32 @@ struct ProcessGeneratedEvents {
     histosMC.add("mcGenSigma0Pt", "Transverse Momentum Of Generated #Sigma^{0} Hyperons (MC)", kTH1F, {axisSigma0Pt});
     histosMC.add("mcGenPhotonFromSigma0Pt", "Transverse Momentum Of Generated Photons From #Sigma^{0} Hyperons (MC)", kTH1F, {axisPhotonPt});
     histosMC.add("mcGenLambdaFromSigma0Pt", "Transverse Momentum Of Generated #Lambda Hyperons From #Sigma^{0} Hyperons (MC)", kTH1F, {axisLambdaPt});
+  
+    histosMC.add("mcPhotonDCAv0Daughters", "DCA Between Photon Vertex Daughter Tracks (MC)", kTH1F, {axisDCADaughters});
+    histosMC.add("mcLambdaDCAv0Daughters", "DCA Between #Lambda Hyperon Vertex Daughter Tracks (MC)", kTH1F, {axisDCADaughters});
+    histosMC.add("mcOtherDCAv0Daughters", "DCA Between Background Vertex Daughter Tracks (MC)", kTH1F, {axisDCADaughters});
+
+    histosMC.add("mcPhotonDCAv0Pos", "DCA Between Photon Vertex And Positively Charged Daughter Track (MC)", kTH1F, {axisDCA});
+    histosMC.add("mcPhotonDCAv0Neg", "DCA Between Photon Vertex And Negatively Charged Daughter Track (MC)", kTH1F, {axisDCA});
+    histosMC.add("mcLambdaDCAv0Pos", "DCA Between #Lambda Hyperon And Positively Charged Daughter Track (MC)", kTH1F, {axisDCA});
+    histosMC.add("mcLambdaDCAv0Neg", "DCA Between #Lambda Hyperon And Negatively Charged Daughter Track (MC)", kTH1F, {axisDCA});
+    histosMC.add("mcOtherDCAv0Pos", "DCA Between Background Vertex And Positively Charged Daughter Track (MC)", kTH1F, {axisDCA});
+    histosMC.add("mcOtherDCAv0Neg", "DCA Between Background Vertex And Negatively Charged Daughter Track (MC)", kTH1F, {axisDCA});
+
+    histosMC.add("mcPhotonV0cosPA", "Cosine Of Photon Vertex Pointing Angle (MC)", kTH1F, {{100, 0.0, 1.0f, "cos#theta"}});
+    histosMC.add("mcLambdaV0cosPA", "Cosine Of #Lambda Hyperon Vertex Pointing Angle (MC)", kTH1F, {{100, 0.0, 1.0f, "cos#theta"}});
+    histosMC.add("mcOtherV0cosPA", "Cosine Of Background Vertex Pointing Angle (MC)", kTH1F, {{100, 0.0, 1.0f, "cos#theta"}});
+
+    histosMC.add("mcPhotonV0Radius", "Photon Vertex Transverse Radius (MC)", kTH1F, {axisV0Radius});
+    histosMC.add("mcLambdaV0Radius", "#Lambda Hyperon Vertex Transverse Radius (MC)", kTH1F, {axisV0Radius});
+    histosMC.add("mcOtherV0Radius", "Background Vertex Transverse Radius (MC)", kTH1F, {axisV0Radius});
+
+    histosMC.add("mcPhotonArmenterosPodolanski", "Armenteros-Podolanski Plot For Photons (MC)", kTH2F, {axisAlpha, axisQt}); 
+    histosMC.add("mcLambdaArmenterosPodolanski", "Armenteros-Podolanski Plot For #Lambda Hyperons (MC)", kTH2F, {axisAlpha, axisQt}); 
+    histosMC.add("mcOtherArmenterosPodolanski", "Armenteros-Podolanski Plot For Background Candidates (MC)", kTH2F, {axisAlpha, axisQt}); 
   }
 
-  void process(McCollision const&, McParticles const& mcparticles) {
+  void process(McCollision const&, McParticles const& mcparticles, Join<V0Datas, McV0Labels> const& v0s) {
     for (auto const& mcparticle: mcparticles) {
       histosMC.fill(HIST("mcGenEta"), mcparticle.eta());
       histosMC.fill(HIST("mcGenPt"), mcparticle.pt());
@@ -117,6 +145,34 @@ struct ProcessGeneratedEvents {
 
       if (abs(mcparticle.pdgCode()) == 3212) {
         histosMC.fill(HIST("mcGenSigma0Pt"), mcparticle.pt());
+      }
+    }
+
+    for (auto const& v0: v0s) {
+      if (v0.has_mcParticle()) {
+        auto const& v0mcParticle = v0.mcParticle();
+        if (abs(v0mcParticle.pdgCode()) == 3122) {
+          histosMC.fill(HIST("mcLambdaDCAv0Daughters"), v0.dcaV0daughters());
+          histosMC.fill(HIST("mcLambdaDCAv0Pos"), v0.dcapostopv());
+          histosMC.fill(HIST("mcLambdaDCAv0Neg"), v0.dcanegtopv());
+          histosMC.fill(HIST("mcLambdaV0cosPA"), v0.v0cosPA());
+          histosMC.fill(HIST("mcLambdaV0Radius"), v0.v0radius());
+          histosMC.fill(HIST("mcLambdaArmenterosPodolanski"), v0.alpha(), v0.qtarm());
+        } else if (v0mcParticle.pdgCode() == 22) {
+          histosMC.fill(HIST("mcPhotonDCAv0Daughters"), v0.dcaV0daughters());
+          histosMC.fill(HIST("mcPhotonDCAv0Pos"), v0.dcapostopv());
+          histosMC.fill(HIST("mcPhotonDCAv0Neg"), v0.dcanegtopv());
+          histosMC.fill(HIST("mcPhotonV0cosPA"), v0.v0cosPA());
+          histosMC.fill(HIST("mcPhotonV0Radius"), v0.v0radius());
+          histosMC.fill(HIST("mcPhotonArmenterosPodolanski"), v0.alpha(), v0.qtarm());
+        } else {
+          histosMC.fill(HIST("mcOtherDCAv0Daughters"), v0.dcaV0daughters());
+          histosMC.fill(HIST("mcOtherDCAv0Pos"), v0.dcapostopv());
+          histosMC.fill(HIST("mcOtherDCAv0Neg"), v0.dcanegtopv());
+          histosMC.fill(HIST("mcOtherV0cosPA"), v0.v0cosPA());
+          histosMC.fill(HIST("mcOtherV0Radius"), v0.v0radius());
+          histosMC.fill(HIST("mcOtherArmenterosPodolanski"), v0.alpha(), v0.qtarm());
+        }
       }
     }
   }
@@ -150,8 +206,8 @@ struct ProcessConversionPhotons {
   Configurable<float> maxPhotonPt{"maxPhotonPt", 2.5f, "Maximum Photon Transverse Momentum [GeV]"};
   Configurable<float> maxTpcNSigmaEl{"maxTpcNSigmaEl", 3.0f, "Maximum N_{#sigma_{e}} from TPC signal"};
   Configurable<float> maxTrackDCA{"maxTrackDCA", 1.0f, "Maximum Track DCA [cm]"};
-  Configurable<float> maxPhotonAlpha{"maxPhotonAlpha", 0.7f, "Maximum Photon Decay Asymmetry"};
-  Configurable<float> maxPhotonQt{"maxPhotonQt", 0.05f, "Maximum Photon Decay q_{T} [GeV]"};
+  Configurable<float> maxPhotonAlpha{"maxPhotonAlpha", 0.8f, "Maximum Photon Decay Asymmetry"};
+  Configurable<float> maxPhotonQt{"maxPhotonQt", 0.1f, "Maximum Photon Decay q_{T} [GeV]"};
 
   Filter etaFilter = (nabs(track::eta) < etaCut);
   Filter dcaFilter = (nabs(track::dcaXY) < maxTrackDCA);
@@ -209,6 +265,7 @@ struct ProcessConversionPhotons {
 
       float const tpcNPosSigmaEl = posPhotonDaughterTrack.tpcNSigmaEl();
       float const tpcNNegSigmaEl = negPhotonDaughterTrack.tpcNSigmaEl();
+
       if (abs(tpcNPosSigmaEl) > maxTpcNSigmaEl || abs(tpcNNegSigmaEl) > maxTpcNSigmaEl) continue;
       histosConversionPhoton.fill(HIST("photonCutEffects"), 5);
 
@@ -245,14 +302,13 @@ struct ProcessConversionPhotons {
         // check that the V0 comes from a photon
         if (v0mcParticle.pdgCode() == 22) {
           if (v0mcParticle.has_mothers()) {
-            for (auto const& photonMother: v0mcParticle.mothers_as<McParticles>()) {
-              // check that photon comes from Sigma^0 hyperon:
-              if (abs(photonMother.pdgCode()) == 3212) {
-                histosConversionPhoton.fill(HIST("RecGenPhotondEvsGenE"), photonEnergy - v0mcParticle.e(), v0mcParticle.e());
-                histosConversionPhoton.fill(HIST("RecGenPhotondPtvsGenPt"), photon.Pt() - v0mcParticle.pt(), v0mcParticle.pt());
-              } else {
-                histosConversionPhoton.fill(HIST("MismatchPhoton"), v0mcParticle.pt());    
-              }
+            auto const& photonMother = v0mcParticle.mothers_first_as<McParticles>();
+            // check that photon comes from Sigma^0 hyperon:
+            if (abs(photonMother.pdgCode()) == 3212) {
+              histosConversionPhoton.fill(HIST("RecGenPhotondEvsGenE"), photonEnergy - v0mcParticle.e(), v0mcParticle.e());
+              histosConversionPhoton.fill(HIST("RecGenPhotondPtvsGenPt"), photon.Pt() - v0mcParticle.pt(), v0mcParticle.pt());
+            } else {
+              histosConversionPhoton.fill(HIST("MismatchPhoton"), v0mcParticle.pt());    
             }
           }
         } else {
@@ -297,7 +353,7 @@ struct ProcessLambdaHyperons {
   // Tracks-related:
   Configurable<float> minLambdaMass{"minLambdaMass", 1.10f, "Minimum Lambda Hyperon Invariant Mass [GeV]"};
   Configurable<float> maxLambdaMass{"maxLambdaMass", 1.13f, "Maximum Lambda Hyperon Invariant Mass [GeV]"};
-  Configurable<float> maxLambdaPt{"maxLambdaPt", 5.0f, "Maximum Lambda Hyperon Transverse Momentum [GeV]"};
+  Configurable<float> maxLambdaPt{"maxLambdaPt", 10.0f, "Maximum Lambda Hyperon Transverse Momentum [GeV]"};
 
   Configurable<float> maxTpcNSigmaPr{"maxTpcNSigmaPr", 3.0f, "Maximum N_{#sigma_{p}} from TPC signal"};
   Configurable<float> maxTpcNSigmaPi{"maxTpcNSigmaPi", 3.0f, "Maximum N_{#sigma_{#pi}} from TPC signal"};
@@ -427,15 +483,14 @@ struct ProcessLambdaHyperons {
         // check that the V0 comes from a lambda hyperon
         if (abs(v0mcParticle.pdgCode()) == 3122) {
           if (v0mcParticle.has_mothers()) {
-            for (auto const& LambdaMother: v0mcParticle.mothers_as<McParticles>()) {
-              // check that Lambda hyperon comes from Sigma^0 hyperon:
-              if (abs(LambdaMother.pdgCode()) == 3212) { 
-                histosLambda.fill(HIST("RecGenLambdadEvsGenE"), LambdaEnergy - v0mcParticle.e(), v0mcParticle.e());
-                histosLambda.fill(HIST("RecGenLambdadPtvsGenPt"), Lambda.Pt() - v0mcParticle.pt(), v0mcParticle.pt());
-              } else {
-                histosLambda.fill(HIST("MismatchLambda"), v0mcParticle.pt());       
-              }
-            }              
+            auto const& LambdaMother = v0mcParticle.mothers_first_as<McParticles>();
+            // check that Lambda hyperon comes from Sigma^0 hyperon:
+            if (abs(LambdaMother.pdgCode()) == 3212) { 
+              histosLambda.fill(HIST("RecGenLambdadEvsGenE"), LambdaEnergy - v0mcParticle.e(), v0mcParticle.e());
+              histosLambda.fill(HIST("RecGenLambdadPtvsGenPt"), Lambda.Pt() - v0mcParticle.pt(), v0mcParticle.pt());
+            } else {
+              histosLambda.fill(HIST("MismatchLambda"), v0mcParticle.pt());       
+            }
           }
         } else {
           histosLambda.fill(HIST("FalseLambda"), v0mcParticle.pt());       
@@ -454,9 +509,9 @@ struct ReconstructSigma0viaPCM {
 
   Configurable<int> nBinsPt{"nBinsPt", 100, "N bins in pT histo"};
   Configurable<int> nBinsMass{"nBinsMass", 100, "N bins in invariant mass histo"};
-  Configurable<float> minSigma0Mass{"minSigma0Mass", 1.1f, "Maximum Sigma^0 Invariant Mass [GeV]"};
-  Configurable<float> maxSigma0Mass{"maxSigma0Mass", 1.3f, "Maximum Sigma^0 Invariant Mass [GeV]"};
-  Configurable<float> maxSigma0Pt{"maxSigma0Pt", 5.0f, "Maximum Sigma^0 Hyperon Transverse Momentum [GeV]"};
+  Configurable<float> minSigma0Mass{"minSigma0Mass", 1.15f, "Maximum Sigma^0 Invariant Mass [GeV]"};
+  Configurable<float> maxSigma0Mass{"maxSigma0Mass", 1.25f, "Maximum Sigma^0 Invariant Mass [GeV]"};
+  Configurable<float> maxSigma0Pt{"maxSigma0Pt", 10.0f, "Maximum Sigma^0 Hyperon Transverse Momentum [GeV]"};
 
   HistogramRegistry histosSigma0{"histosSigma0", {}, OutputObjHandlingPolicy::AnalysisObject};
 

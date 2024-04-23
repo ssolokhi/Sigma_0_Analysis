@@ -368,7 +368,7 @@
         "v0setting_cospa": "0.995",
         "v0setting_radius": "1",
         "maxPhotonMass": "0.100000001",
-        "maxPhotonPt": "5",
+        "maxPhotonPt": "1.0",
         "maxTpcNSigmaEl": "3",
         "maxTrackDCA": "1",
         "maxPhotonAlpha": "0.699999988",
@@ -390,7 +390,7 @@
         "minLambdaQt": "0.0199999996",
         "minLambdaMass": "1.10000002",
         "maxLambdaMass": "1.13",
-        "maxLambdaPt": "5",
+        "maxLambdaPt": "10.0",
         "maxTpcNSigmaPr": "3",
         "maxTpcNSigmaPi": "3",
         "maxTrackDCA": "1"
@@ -399,9 +399,9 @@
         "zVertexCut": "10",
         "nBinsPt": "100",
         "nBinsMass": "100",
-        "minSigma0Mass": "1.10000002",
-        "maxSigma0Mass": "1.29999995",
-        "maxSigma0Pt": "5"
+        "minSigma0Mass": "1.15",
+        "maxSigma0Mass": "1.25",
+        "maxSigma0Pt": "10"
     },
     "internal-dpl-aod-writer": "",
     "internal-dpl-aod-global-analysis-file-sink": "",
