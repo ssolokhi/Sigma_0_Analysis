@@ -47,6 +47,23 @@ namespace o2::aod {
 }
 
 namespace o2::aod {
+  namespace mcconversionphoton {
+    DECLARE_SOA_COLUMN(GenPx, genpx, float);
+    DECLARE_SOA_COLUMN(RecPx, recpx, float);
+    DECLARE_SOA_COLUMN(GenPy, genpy, float);
+    DECLARE_SOA_COLUMN(RecPy, recpy, float);
+    DECLARE_SOA_COLUMN(GenPz, genpz, float);
+    DECLARE_SOA_COLUMN(RecPz, recpz, float);
+    DECLARE_SOA_COLUMN(GenE, gene, float);
+    DECLARE_SOA_COLUMN(RecE, rece, float);
+  }
+
+  DECLARE_SOA_TABLE(mcConversionPhoton, "AOD", "MCPCMPHOTON", mcconversionphoton::GenPx, mcconversionphoton::RecPx,
+  mcconversionphoton::GenPy, mcconversionphoton::RecPy, mcconversionphoton::GenPz, mcconversionphoton::RecPz,
+  mcconversionphoton::GenE, mcconversionphoton::RecE);
+}
+
+namespace o2::aod {
   namespace lambdahyperon {
     DECLARE_SOA_COLUMN(Px, px, float);
     DECLARE_SOA_COLUMN(Py, py, float);
@@ -56,6 +73,23 @@ namespace o2::aod {
 
   DECLARE_SOA_TABLE(LambdaHyperon, "AOD", "LAMBDAHYPERON", 
   lambdahyperon::Px, lambdahyperon::Py, lambdahyperon::Pz, lambdahyperon::E);
+}
+
+namespace o2::aod {
+  namespace mclambdahyperon {
+    DECLARE_SOA_COLUMN(GenPx, genpx, float);
+    DECLARE_SOA_COLUMN(RecPx, recpx, float);
+    DECLARE_SOA_COLUMN(GenPy, genpy, float);
+    DECLARE_SOA_COLUMN(RecPy, recpy, float);
+    DECLARE_SOA_COLUMN(GenPz, genpz, float);
+    DECLARE_SOA_COLUMN(RecPz, recpz, float);
+    DECLARE_SOA_COLUMN(GenE, gene, float);
+    DECLARE_SOA_COLUMN(RecE, rece, float);
+  }
+
+  DECLARE_SOA_TABLE(mcLambdaHyperon, "AOD", "MCLAMBDAHYPERON", mclambdahyperon::GenPx, mclambdahyperon::RecPx,
+  mclambdahyperon::GenPy, mclambdahyperon::RecPy, mclambdahyperon::GenPz, mclambdahyperon::RecPz,
+  mclambdahyperon::GenE, mclambdahyperon::RecE);
 }
 
 struct ProcessCollisions {
@@ -114,9 +148,9 @@ struct ProcessGeneratedEvents {
     histosMC.add("mcOtherDCAv0Pos", "DCA Between Background Vertex And Positively Charged Daughter Track (MC)", kTH1F, {axisDCA});
     histosMC.add("mcOtherDCAv0Neg", "DCA Between Background Vertex And Negatively Charged Daughter Track (MC)", kTH1F, {axisDCA});
 
-    histosMC.add("mcPhotonV0cosPA", "Cosine Of Photon Vertex Pointing Angle (MC)", kTH1F, {{100, 0.0, 1.0f, "cos#theta"}});
-    histosMC.add("mcLambdaV0cosPA", "Cosine Of #Lambda Hyperon Vertex Pointing Angle (MC)", kTH1F, {{100, 0.0, 1.0f, "cos#theta"}});
-    histosMC.add("mcOtherV0cosPA", "Cosine Of Background Vertex Pointing Angle (MC)", kTH1F, {{100, 0.0, 1.0f, "cos#theta"}});
+    histosMC.add("mcPhotonV0cosPA", "Cosine Of Photon Vertex Pointing Angle (MC)", kTH1F, {{100, 0.99f, 1.0f, "cos#theta"}});
+    histosMC.add("mcLambdaV0cosPA", "Cosine Of #Lambda Hyperon Vertex Pointing Angle (MC)", kTH1F, {{100, 0.99f, 1.0f, "cos#theta"}});
+    histosMC.add("mcOtherV0cosPA", "Cosine Of Background Vertex Pointing Angle (MC)", kTH1F, {{100, 0.99f, 1.0f, "cos#theta"}});
 
     histosMC.add("mcPhotonV0Radius", "Photon Vertex Transverse Radius (MC)", kTH1F, {axisV0Radius});
     histosMC.add("mcLambdaV0Radius", "#Lambda Hyperon Vertex Transverse Radius (MC)", kTH1F, {axisV0Radius});
