@@ -128,6 +128,7 @@ struct ProcessGeneratedEvents {
     const AxisSpec axisV0Radius{100, 0.0f, 50.0f, "V0 Radius [cm]"};
     const AxisSpec axisAlpha{100, -1.0f, 1.0f, "#alpha"};
     const AxisSpec axisQt{100, 0.0f, 0.25f, "q_{T} [GeV]"};
+    const AxisSpec axisCosTheta{100, 0.99f, 1.0f, "cos#theta"};
 
     histosMC.add("mcGenEta", "Pseudorapidity Of Generated Tracks (MC)", kTH1F, {axisEta});
     histosMC.add("mcGenPt", "Transverse Momentum Of Generated Tracks (MC)", kTH1F, {{100, 0.0f, 10.0f, "p_{T} [GeV]"}});
@@ -148,9 +149,9 @@ struct ProcessGeneratedEvents {
     histosMC.add("mcOtherDCAv0Pos", "DCA Between Background Vertex And Positively Charged Daughter Track (MC)", kTH1F, {axisDCA});
     histosMC.add("mcOtherDCAv0Neg", "DCA Between Background Vertex And Negatively Charged Daughter Track (MC)", kTH1F, {axisDCA});
 
-    histosMC.add("mcPhotonV0cosPA", "Cosine Of Photon Vertex Pointing Angle (MC)", kTH1F, {{100, 0.99f, 1.0f, "cos#theta"}});
-    histosMC.add("mcLambdaV0cosPA", "Cosine Of #Lambda Hyperon Vertex Pointing Angle (MC)", kTH1F, {{100, 0.99f, 1.0f, "cos#theta"}});
-    histosMC.add("mcOtherV0cosPA", "Cosine Of Background Vertex Pointing Angle (MC)", kTH1F, {{100, 0.99f, 1.0f, "cos#theta"}});
+    histosMC.add("mcPhotonV0cosPA", "Cosine Of Photon Vertex Pointing Angle (MC)", kTH1F, {axisCosTheta});
+    histosMC.add("mcLambdaV0cosPA", "Cosine Of #Lambda Hyperon Vertex Pointing Angle (MC)", kTH1F, {{axisCosTheta}});
+    histosMC.add("mcOtherV0cosPA", "Cosine Of Background Vertex Pointing Angle (MC)", kTH1F, {axisCosTheta});
 
     histosMC.add("mcPhotonV0Radius", "Photon Vertex Transverse Radius (MC)", kTH1F, {axisV0Radius});
     histosMC.add("mcLambdaV0Radius", "#Lambda Hyperon Vertex Transverse Radius (MC)", kTH1F, {axisV0Radius});
@@ -214,6 +215,7 @@ struct ProcessGeneratedEvents {
 
 struct ProcessConversionPhotons {
   Produces<ConversionPhoton> AddConversionPhoton;
+  Produces<mcConversionPhoton> AddMCconversionPhoton;
 
   float electronMass = o2::constants::physics::MassElectron;
 
@@ -236,8 +238,8 @@ struct ProcessConversionPhotons {
   Filter preV0Filter = (nabs(v0data::dcapostopv) > v0setting_dcapostopv && nabs(v0data::dcanegtopv) > v0setting_dcanegtopv && v0data::dcaV0daughters < v0setting_dcav0dau);
   using filteredV0s = Filtered<Join<V0Datas, McV0Labels>>;
 
-  Configurable<float> maxPhotonMass{"maxPhotonMass", 0.1f, "Maximum Electron-Positron Invariant Mass [GeV]"};
-  Configurable<float> maxPhotonPt{"maxPhotonPt", 2.5f, "Maximum Photon Transverse Momentum [GeV]"};
+  Configurable<float> maxPhotonMass{"maxPhotonMass", 1.0f, "Maximum Electron-Positron Invariant Mass [GeV]"};
+  Configurable<float> maxPhotonPt{"maxPhotonPt", 10.0f, "Maximum Photon Transverse Momentum [GeV]"};
   Configurable<float> maxTpcNSigmaEl{"maxTpcNSigmaEl", 3.0f, "Maximum N_{#sigma_{e}} from TPC signal"};
   Configurable<float> maxTrackDCA{"maxTrackDCA", 1.0f, "Maximum Track DCA [cm]"};
   Configurable<float> maxPhotonAlpha{"maxPhotonAlpha", 0.8f, "Maximum Photon Decay Asymmetry"};
@@ -257,7 +259,7 @@ struct ProcessConversionPhotons {
     const AxisSpec axisPhotonPt{nBinsPt, 0.0f, maxPhotonPt, "p_{T} [GeV]"};
     const AxisSpec axisNsigmaE{100, -maxTpcNSigmaEl, maxTpcNSigmaEl, "N_{#sigma_{e}}"};
     const AxisSpec axisDCA{100, -5.0f, 5.0f, "DCA [cm]"};
-    const AxisSpec axisV0Radius{100, 0.0f, 50.0f, "V0 Radius [cm]"};
+    const AxisSpec axisV0Radius{200, 0.0f, 200.0f, "V0 Radius [cm]"};
     const AxisSpec axisAlpha{100, -1.0f, 1.0f, "#alpha"};
     const AxisSpec axisQt{100, 0.0f, 0.25f, "q_{T} [GeV]"};
 
@@ -278,7 +280,7 @@ struct ProcessConversionPhotons {
 
     histosConversionPhoton.add("RecGenPhotondEvsGenE", "Energy Difference Between Reconstructed And Generated Photon vs. Energy", kTH2F, {{100, -0.5f, 0.5f, "E_{rec} - E_{gen} [GeV]"}, {100, 0.0f, maxPhotonPt, "E_{gen} [GeV]"}}); 
     histosConversionPhoton.add("RecGenPhotondPtvsGenPt", "Transverse Momentum Difference Between Reconstructed And Generated Photon vs. Transverse Momentum", kTH2F, {{100, -0.5f, 0.5f, "p_{T, rec} - p_{T, gen} [GeV]"}, {100, 0.0f, maxPhotonPt, "p_{T, gen} [GeV]"}}); 
-    histosConversionPhoton.add("MismatchPhoton", "Transverse Momentum Of Mismatched Photons NOT From #Sigma^{0} Hyperons", kTH1F, {{100, 0.0f, maxPhotonPt, "p_{T} [GeV]"}});
+    histosConversionPhoton.add("MismatchedPhoton", "Transverse Momentum Of Mismatched Photons NOT From #Sigma^{0} Hyperons", kTH1F, {{100, 0.0f, maxPhotonPt, "p_{T} [GeV]"}});
     histosConversionPhoton.add("FalsePhoton", "Transverse Momentum Of Mismatched Decay Verteces NOT From Photons", kTH1F, {{100, 0.0f, maxPhotonPt, "p_{T} [GeV]"}});
   }
 
@@ -339,10 +341,12 @@ struct ProcessConversionPhotons {
             auto const& photonMother = v0mcParticle.mothers_first_as<McParticles>();
             // check that photon comes from Sigma^0 hyperon:
             if (abs(photonMother.pdgCode()) == 3212) {
+              AddMCconversionPhoton(v0mcParticle.px(), photon.Px(), v0mcParticle.py(), photon.Py(),
+              v0mcParticle.pz(), photon.Py(), v0mcParticle.e(), photon.E());
               histosConversionPhoton.fill(HIST("RecGenPhotondEvsGenE"), photonEnergy - v0mcParticle.e(), v0mcParticle.e());
               histosConversionPhoton.fill(HIST("RecGenPhotondPtvsGenPt"), photon.Pt() - v0mcParticle.pt(), v0mcParticle.pt());
             } else {
-              histosConversionPhoton.fill(HIST("MismatchPhoton"), v0mcParticle.pt());    
+              histosConversionPhoton.fill(HIST("MismatchedPhoton"), v0mcParticle.pt());    
             }
           }
         } else {
@@ -355,6 +359,7 @@ struct ProcessConversionPhotons {
 
 struct ProcessLambdaHyperons {
   Produces<LambdaHyperon> AddLambdaHyperon;
+  Produces<mcLambdaHyperon> AddMCLambdaHyperon;
 
   float chargedPionMass = o2::constants::physics::MassPionCharged;
   float protonMass = o2::constants::physics::MassProton;
@@ -369,7 +374,7 @@ struct ProcessLambdaHyperons {
   Configurable<int> nBinsMass{"nBinsMass", 100, "N bins in invariant mass histo"};
   Configurable<float> etaCut{"etaCut", 1.2f, "Maximum Pseudorapidity"};
 
-  Configurable<float> v0setting_dcav0dau{"v0setting_dcav0dau", 1.0f, "DCA V0 Daughters [cm]"};
+  Configurable<float> v0setting_dcav0dau{"v0setting_dcav0dau", 2.0f, "DCA V0 Daughters [cm]"};
   Configurable<float> v0setting_dcapostopv{"v0setting_dcapostopv", 0.06f, "DCA Pos To PV [cm]"};
   Configurable<float> v0setting_dcanegtopv{"v0setting_dcanegtopv", 0.06f, "DCA Neg To PV [cm]"};
   Configurable<double> v0setting_cospa{"v0setting_cospa", 0.995, "V0 CosPA"};
@@ -407,7 +412,7 @@ struct ProcessLambdaHyperons {
     const AxisSpec axisLambdaPt{nBinsPt, 0.0f, maxLambdaPt, "p_{T} [GeV]"};
     const AxisSpec axisEta{150, -etaCut, etaCut, "#eta"};
     const AxisSpec axisDCA{100, -5.0f, 5.0f, "DCA [cm]"};
-    const AxisSpec axisV0Radius{100, 0.0f, 50.0f, "V0 Radius [cm]"};
+    const AxisSpec axisV0Radius{250, 0.0f, 250.0f, "V0 Radius [cm]"};
     const AxisSpec axisAlpha{100, -1.0f, 1.0f, "#alpha"};
     const AxisSpec axisQt{100, 0.0f, 0.25f, "q_{T} [GeV]"};
     const AxisSpec axisNsigmaPr{100, -maxTpcNSigmaPr, maxTpcNSigmaPr, "N_{#sigma_{p}}"};
@@ -432,7 +437,7 @@ struct ProcessLambdaHyperons {
 
     histosLambda.add("RecGenLambdadEvsGenE", "Energy Difference Between Reconstructed And Generated #Lambda Hyperon vs. Energy", kTH2F, {{100, -0.5f, 0.5f, "E_{rec} - E_{gen} [GeV]"}, {100, 0.0f, maxLambdaPt, "E_{gen} [GeV]"}}); 
     histosLambda.add("RecGenLambdadPtvsGenPt", "Transverse Momentum Difference Between Reconstructed And Generated #Lambda Hyperon vs. Transverse Momentum", kTH2F, {{100, -0.5f, 0.5f, "p_{T, rec} - p_{T, gen} [GeV]"}, {100, 0.0f, maxLambdaPt, "p_{T, gen} [GeV]"}}); 
-    histosLambda.add("MismatchLambda", "Transverse Momentum Of Mismatched #Lambda Hyperons NOT From #Sigma^{0} Hyperons", kTH1F, {{100, 0.0f, maxLambdaPt, "p_{T} [GeV]"}});
+    histosLambda.add("MismatchedLambda", "Transverse Momentum Of Mismatched #Lambda Hyperons NOT From #Sigma^{0} Hyperons", kTH1F, {{100, 0.0f, maxLambdaPt, "p_{T} [GeV]"}});
     histosLambda.add("FalseLambda", "Transverse Momentum Of Mismatched Decay Verteces NOT From #Lambda Hyperons", kTH1F, {{100, 0.0f, maxLambdaPt, "p_{T} [GeV]"}});
   }
 
@@ -520,10 +525,12 @@ struct ProcessLambdaHyperons {
             auto const& LambdaMother = v0mcParticle.mothers_first_as<McParticles>();
             // check that Lambda hyperon comes from Sigma^0 hyperon:
             if (abs(LambdaMother.pdgCode()) == 3212) { 
+              AddMCLambdaHyperon(v0mcParticle.px(), Lambda.Px(), v0mcParticle.py(), Lambda.Py(),
+              v0mcParticle.pz(), Lambda.Py(), v0mcParticle.e(), Lambda.E());
               histosLambda.fill(HIST("RecGenLambdadEvsGenE"), LambdaEnergy - v0mcParticle.e(), v0mcParticle.e());
               histosLambda.fill(HIST("RecGenLambdadPtvsGenPt"), Lambda.Pt() - v0mcParticle.pt(), v0mcParticle.pt());
             } else {
-              histosLambda.fill(HIST("MismatchLambda"), v0mcParticle.pt());       
+              histosLambda.fill(HIST("MismatchedLambda"), v0mcParticle.pt());       
             }
           }
         } else {
@@ -541,11 +548,11 @@ struct ReconstructSigma0viaPCM {
   Filter eventSelectionFilter = (evsel::sel8 == true);
   using filteredCollision = Filtered<Join<Collisions, EvSels>>::iterator;
 
-  Configurable<int> nBinsPt{"nBinsPt", 100, "N bins in pT histo"};
-  Configurable<int> nBinsMass{"nBinsMass", 100, "N bins in invariant mass histo"};
-  Configurable<float> minSigma0Mass{"minSigma0Mass", 1.15f, "Maximum Sigma^0 Invariant Mass [GeV]"};
-  Configurable<float> maxSigma0Mass{"maxSigma0Mass", 1.25f, "Maximum Sigma^0 Invariant Mass [GeV]"};
-  Configurable<float> maxSigma0Pt{"maxSigma0Pt", 10.0f, "Maximum Sigma^0 Hyperon Transverse Momentum [GeV]"};
+  Configurable<int> nBinsPt{"nBinsPt", 120, "N bins in pT histo"};
+  Configurable<int> nBinsMass{"nBinsMass", 150, "N bins in invariant mass histo"};
+  Configurable<float> minSigma0Mass{"minSigma0Mass", 1.12f, "Maximum Sigma^0 Invariant Mass [GeV]"};
+  Configurable<float> maxSigma0Mass{"maxSigma0Mass", 1.32f, "Maximum Sigma^0 Invariant Mass [GeV]"};
+  Configurable<float> maxSigma0Pt{"maxSigma0Pt", 12.0f, "Maximum Sigma^0 Hyperon Transverse Momentum [GeV]"};
 
   HistogramRegistry histosSigma0{"histosSigma0", {}, OutputObjHandlingPolicy::AnalysisObject};
 
@@ -570,12 +577,78 @@ struct ReconstructSigma0viaPCM {
   }
 };
 
+struct ReconstructMCSigma0viaPCM {
+  Configurable<float> zVertexCut{"zVertexCut", 10.0f, "Maximum Primary Vertex Z coordinate [cm]"};
+  Filter zVertexFilter = (nabs(collision::posZ) < zVertexCut);
+  Filter zVertexErrorFilter = (collision::posZ != 0.0f);
+  Filter eventSelectionFilter = (evsel::sel8 == true);
+  using filteredCollision = Filtered<Join<Collisions, EvSels>>::iterator;
+
+  Configurable<int> nBinsPt{"nBinsPt", 120, "N bins in pT histo"};
+  Configurable<int> nBinsMass{"nBinsMass", 150, "N bins in invariant mass histo"};
+  Configurable<float> minSigma0Mass{"minSigma0Mass", 1.12f, "Maximum Sigma^0 Invariant Mass [GeV]"};
+  Configurable<float> maxSigma0Mass{"maxSigma0Mass", 1.32f, "Maximum Sigma^0 Invariant Mass [GeV]"};
+  Configurable<float> maxSigma0Pt{"maxSigma0Pt", 12.0f, "Maximum Sigma^0 Hyperon Transverse Momentum [GeV]"};
+
+  HistogramRegistry histosMCSigma0{"histosMCSigma0", {}, OutputObjHandlingPolicy::AnalysisObject};
+
+  void init(InitContext const&) {
+    const AxisSpec axisSigma0Mass{nBinsMass, minSigma0Mass, maxSigma0Mass, "M_{#Lambda#gamma_{PCM}} [GeV]"};
+    const AxisSpec axisSigma0Pt{nBinsPt, 0.0f, maxSigma0Pt, "p_{T, candidate} [GeV]"};
+
+    histosMCSigma0.add("MCSigma0PCMgenLambdaGenPhoton", "#Sigma^{0} Candidates From Conversion Photons (gen. #Lambda, gen. #gamma)", kTH2F, {axisSigma0Mass, axisSigma0Pt});
+    histosMCSigma0.add("MCSigma0PCMgenLambdaRecPhoton", "#Sigma^{0} Candidates From Conversion Photons (gen. #Lambda, rec. #gamma)", kTH2F, {axisSigma0Mass, axisSigma0Pt});
+    histosMCSigma0.add("MCSigma0PCMrecLambdaGenPhoton", "#Sigma^{0} Candidates From Conversion Photons (rec. #Lambda, gen. #gamma)", kTH2F, {axisSigma0Mass, axisSigma0Pt});
+    histosMCSigma0.add("MCSigma0PCMrecLambdaRecPhoton", "#Sigma^{0} Candidates From Conversion Photons (rec. #Lambda, rec. #gamma)", kTH2F, {axisSigma0Mass, axisSigma0Pt});
+  }
+
+  void process(filteredCollision const&, mcConversionPhoton const& mcPhotons, mcLambdaHyperon const& mcLambdas) {
+    for (auto const& [mcLambda, mcPhoton]: combinations(CombinationsFullIndexPolicy(mcLambdas, mcPhotons))) {
+      TLorentzVector const generatedLambdaLorentzVector(mcLambda.genpx(), mcLambda.genpy(), mcLambda.genpz(), mcLambda.gene());
+      TLorentzVector const generatedPhotonLorentzVector(mcPhoton.genpx(), mcPhoton.genpy(), mcPhoton.genpz(), mcPhoton.gene());
+     
+      TLorentzVector const reconstructedLambdaLorentzVector(mcLambda.recpx(), mcLambda.recpy(), mcLambda.recpz(), mcLambda.rece());
+      TLorentzVector const reconstructedPhotonLorentzVector(mcPhoton.recpx(), mcPhoton.recpy(), mcPhoton.recpz(), mcPhoton.rece());
+
+      TLorentzVector const generatedLambdaGeneratedPhoton = generatedLambdaLorentzVector + generatedPhotonLorentzVector;
+      TLorentzVector const generatedLambdaReconstructedPhoton = generatedLambdaLorentzVector + reconstructedPhotonLorentzVector;
+      TLorentzVector const reconstructedLambdaGeneratedPhoton = reconstructedLambdaLorentzVector + generatedPhotonLorentzVector;
+      TLorentzVector const reconstructedLambdaReconstructedPhoton = reconstructedLambdaLorentzVector + reconstructedPhotonLorentzVector;
+
+      float Sigma0Mass = generatedLambdaGeneratedPhoton.M();
+      float Sigma0Pt = generatedLambdaGeneratedPhoton.Pt();
+      if (Sigma0Mass < maxSigma0Mass && Sigma0Mass > minSigma0Mass) {
+        histosMCSigma0.fill(HIST("MCSigma0PCMgenLambdaGenPhoton"), Sigma0Mass, Sigma0Pt);           
+      }
+
+      Sigma0Mass = generatedLambdaReconstructedPhoton.M();
+      Sigma0Pt = generatedLambdaReconstructedPhoton.Pt();
+      if (Sigma0Mass < maxSigma0Mass && Sigma0Mass > minSigma0Mass) {
+        histosMCSigma0.fill(HIST("MCSigma0PCMgenLambdaRecPhoton"), Sigma0Mass, Sigma0Pt);           
+      }
+
+      Sigma0Mass = reconstructedLambdaGeneratedPhoton.M();
+      Sigma0Pt = reconstructedLambdaGeneratedPhoton.Pt();
+      if (Sigma0Mass < maxSigma0Mass && Sigma0Mass > minSigma0Mass) {
+        histosMCSigma0.fill(HIST("MCSigma0PCMrecLambdaGenPhoton"), Sigma0Mass, Sigma0Pt);           
+      }
+
+      Sigma0Mass = reconstructedLambdaReconstructedPhoton.M();
+      Sigma0Pt = reconstructedLambdaReconstructedPhoton.Pt();
+      if (Sigma0Mass < maxSigma0Mass && Sigma0Mass > minSigma0Mass) {
+        histosMCSigma0.fill(HIST("MCSigma0PCMrecLambdaRecPhoton"), Sigma0Mass, Sigma0Pt);           
+      }
+    }
+  }
+};
+
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc) {
   return WorkflowSpec{
     adaptAnalysisTask<ProcessCollisions>(cfgc),
     adaptAnalysisTask<ProcessGeneratedEvents>(cfgc),
     adaptAnalysisTask<ProcessConversionPhotons>(cfgc),
     adaptAnalysisTask<ProcessLambdaHyperons>(cfgc),
-    adaptAnalysisTask<ReconstructSigma0viaPCM>(cfgc)
+    adaptAnalysisTask<ReconstructSigma0viaPCM>(cfgc),
+    adaptAnalysisTask<ReconstructMCSigma0viaPCM>(cfgc)
   };
 }

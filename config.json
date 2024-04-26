@@ -71,12 +71,6 @@
         "processSkipV0sNotUsedInCascades": "false",
         "processSkipV0sNotUsedInTrackedCascades": "false"
     },
-    "process-generated-events": {
-        "nBinsPt": "100",
-        "maxPhotonPt": "0.5",
-        "maxLambdaPt": "5",
-        "maxSigma0Pt": "5"
-    },
     "lambdakzero-builder": {
         "createV0CovMats": "-1",
         "createV0DauCovMats": "-1",
@@ -362,17 +356,17 @@
         "nBinsPt": "100",
         "nBinsMass": "100",
         "etaCut": "1.20000005",
-        "v0setting_dcav0dau": "0.3",
+        "v0setting_dcav0dau": "2.00000012",
         "v0setting_dcapostopv": "0.0",
         "v0setting_dcanegtopv": "0.0",
         "v0setting_cospa": "0.995",
-        "v0setting_radius": "1",
-        "maxPhotonMass": "0.100000001",
-        "maxPhotonPt": "1.0",
-        "maxTpcNSigmaEl": "3",
-        "maxTrackDCA": "1",
+        "v0setting_radius": "0",
+        "maxPhotonMass": "1.00000001",
+        "maxPhotonPt": "10.0",
+        "maxTpcNSigmaEl": "10.0",
+        "maxTrackDCA": "2.0",
         "maxPhotonAlpha": "0.699999988",
-        "maxPhotonQt": "0.02500000007"
+        "maxPhotonQt": "0.0250000004"
     },
     "process-lambda-hyperons": {
         "zVertexCut": "10",
@@ -380,28 +374,42 @@
         "nBinsMass": "100",
         "etaCut": "1.20000005",
         "v0setting_dcav0dau": "1",
-        "v0setting_dcapostopv": "0.0",
-        "v0setting_dcanegtopv": "0.0",
+        "v0setting_dcapostopv": "0",
+        "v0setting_dcanegtopv": "0",
         "v0setting_cospa": "0.995",
-        "v0setting_radius": "0.0",
+        "v0setting_radius": "0",
         "maxLambdaAlpha": "0.899999976",
         "minLambdaAlpha": "0.400000006",
         "maxLambdaQt": "0.129999995",
         "minLambdaQt": "0.0199999996",
-        "minLambdaMass": "1.10000002",
-        "maxLambdaMass": "1.13",
+        "minLambdaMass": "1.110",
+        "maxLambdaMass": "1.121",
         "maxLambdaPt": "10.0",
-        "maxTpcNSigmaPr": "3",
-        "maxTpcNSigmaPi": "3",
-        "maxTrackDCA": "1"
+        "maxTpcNSigmaPr": "10.0",
+        "maxTpcNSigmaPi": "10.0",
+        "maxTrackDCA": "2.0"
+    },
+    "process-generated-events": {
+        "nBinsPt": "100",
+        "maxPhotonPt": "0.5",
+        "maxLambdaPt": "5",
+        "maxSigma0Pt": "5"
+    },
+    "reconstruct-m-c-sigma0via-p-c-m": {
+        "zVertexCut": "10",
+        "nBinsPt": "120",
+        "nBinsMass": "150",
+        "minSigma0Mass": "1.12",
+        "maxSigma0Mass": "1.32",
+        "maxSigma0Pt": "12"
     },
     "reconstruct-sigma0via-p-c-m": {
         "zVertexCut": "10",
-        "nBinsPt": "100",
-        "nBinsMass": "100",
-        "minSigma0Mass": "1.15",
-        "maxSigma0Mass": "1.25",
-        "maxSigma0Pt": "10"
+        "nBinsPt": "120",
+        "nBinsMass": "150",
+        "minSigma0Mass": "1.12",
+        "maxSigma0Mass": "1.32",
+        "maxSigma0Pt": "12"
     },
     "internal-dpl-aod-writer": "",
     "internal-dpl-aod-global-analysis-file-sink": "",
