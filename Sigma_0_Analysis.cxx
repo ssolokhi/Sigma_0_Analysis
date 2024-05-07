@@ -259,7 +259,7 @@ struct ProcessConversionPhotons {
     const AxisSpec axisPhotonPt{nBinsPt, 0.0f, maxPhotonPt, "p_{T} [GeV]"};
     const AxisSpec axisNsigmaE{100, -maxTpcNSigmaEl, maxTpcNSigmaEl, "N_{#sigma_{e}}"};
     const AxisSpec axisDCA{100, -5.0f, 5.0f, "DCA [cm]"};
-    const AxisSpec axisV0Radius{200, 0.0f, 200.0f, "V0 Radius [cm]"};
+    const AxisSpec axisV0Radius{100, 0.0f, 100.0f, "V0 Radius [cm]"};
     const AxisSpec axisAlpha{100, -1.0f, 1.0f, "#alpha"};
     const AxisSpec axisQt{100, 0.0f, 0.25f, "q_{T} [GeV]"};
 
@@ -412,7 +412,7 @@ struct ProcessLambdaHyperons {
     const AxisSpec axisLambdaPt{nBinsPt, 0.0f, maxLambdaPt, "p_{T} [GeV]"};
     const AxisSpec axisEta{150, -etaCut, etaCut, "#eta"};
     const AxisSpec axisDCA{100, -5.0f, 5.0f, "DCA [cm]"};
-    const AxisSpec axisV0Radius{250, 0.0f, 250.0f, "V0 Radius [cm]"};
+    const AxisSpec axisV0Radius{100, 0.0f, 50.0f, "V0 Radius [cm]"};
     const AxisSpec axisAlpha{100, -1.0f, 1.0f, "#alpha"};
     const AxisSpec axisQt{100, 0.0f, 0.25f, "q_{T} [GeV]"};
     const AxisSpec axisNsigmaPr{100, -maxTpcNSigmaPr, maxTpcNSigmaPr, "N_{#sigma_{p}}"};
@@ -559,8 +559,11 @@ struct ReconstructSigma0viaPCM {
   void init(InitContext const&) {
     const AxisSpec axisSigma0Mass{nBinsMass, minSigma0Mass, maxSigma0Mass, "M_{#Lambda#gamma_{PCM}} [GeV]"};
     const AxisSpec axisSigma0Pt{nBinsPt, 0.0f, maxSigma0Pt, "p_{T, candidate} [GeV]"};
+    const AxisSpec axisAlpha{100, -1.0f, 1.0f, "#alpha"};
+    const AxisSpec axisQt{100, 0.0f, 0.25f, "q_{T} [GeV]"};
 
     histosSigma0.add("Sigma0PCM", "#Sigma^{0} Candidates From Conversion Photons", kTH2F, {axisSigma0Mass, axisSigma0Pt});
+    histosSigma0.add("Sigma0PCMArmenterosPodolanski", "Armenteros-Podolanski Plot for #Sigma^{0} Candidates (PCM)", kTH2F, {axisAlpha, axisQt});
   }
 
   void process(filteredCollision const&, ConversionPhoton const& photons, LambdaHyperon const& Lambdas) {
@@ -570,8 +573,18 @@ struct ReconstructSigma0viaPCM {
       TLorentzVector const Sigma0LorentzVector = LambdaLorentzVector + photonLorentzVector;
       float const Sigma0Mass = Sigma0LorentzVector.M();
       float const Sigma0Pt = Sigma0LorentzVector.Pt();
+
+      TVector3 LambdaMomentum(Lambda.px(), Lambda.py(), Lambda.pz());
+      TVector3 photonMomentum(photon.px(), photon.py(), photon.pz());
+      TVector3 Sigma0Momentum(Sigma0LorentzVector.Px(), Sigma0LorentzVector.Py(), Sigma0LorentzVector.Pz());
+      float pLongPos = LambdaMomentum.Dot(Sigma0Momentum)/Sigma0Momentum.Mag();
+      float pLongNeg = photonMomentum.Dot(Sigma0Momentum)/Sigma0Momentum.Mag();
+      float alpha = (pLongPos - pLongNeg)/(pLongPos + pLongNeg);
+      float qT = photonMomentum.Perp(Sigma0Momentum);
+
       if (Sigma0Mass < maxSigma0Mass && Sigma0Mass > minSigma0Mass) {
-        histosSigma0.fill(HIST("Sigma0PCM"), Sigma0Mass, Sigma0Pt);           
+        histosSigma0.fill(HIST("Sigma0PCM"), Sigma0Mass, Sigma0Pt);
+        histosSigma0.fill(HIST("Sigma0PCMArmenterosPodolanski"), alpha, qT);
       }
     }
   }
@@ -599,7 +612,7 @@ struct ReconstructMCSigma0viaPCM {
     histosMCSigma0.add("MCSigma0PCMgenLambdaGenPhoton", "#Sigma^{0} Candidates From Conversion Photons (gen. #Lambda, gen. #gamma)", kTH2F, {axisSigma0Mass, axisSigma0Pt});
     histosMCSigma0.add("MCSigma0PCMgenLambdaRecPhoton", "#Sigma^{0} Candidates From Conversion Photons (gen. #Lambda, rec. #gamma)", kTH2F, {axisSigma0Mass, axisSigma0Pt});
     histosMCSigma0.add("MCSigma0PCMrecLambdaGenPhoton", "#Sigma^{0} Candidates From Conversion Photons (rec. #Lambda, gen. #gamma)", kTH2F, {axisSigma0Mass, axisSigma0Pt});
-    histosMCSigma0.add("MCSigma0PCMrecLambdaRecPhoton", "#Sigma^{0} Candidates From Conversion Photons (rec. #Lambda, rec. #gamma)", kTH2F, {axisSigma0Mass, axisSigma0Pt});
+    histosMCSigma0.add("MCSigma0PCMrecLambdaRecPhoton", "#Sigma^{0} Candidates From Conversion Photons (rec. #Lambda, rec. #gamma)", kTH2F, {axisSigma0Mass, axisSigma0Pt}); 
   }
 
   void process(filteredCollision const&, mcConversionPhoton const& mcPhotons, mcLambdaHyperon const& mcLambdas) {
