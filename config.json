@@ -359,7 +359,7 @@
         "v0setting_dcav0dau": "2.00000012",
         "v0setting_dcapostopv": "0.0",
         "v0setting_dcanegtopv": "0.0",
-        "v0setting_cospa": "0.995",
+        "v0setting_cospa": "0.999",
         "v0setting_radius": "0",
         "maxPhotonMass": "1.00000001",
         "maxPhotonPt": "10.0",
@@ -376,18 +376,18 @@
         "v0setting_dcav0dau": "1",
         "v0setting_dcapostopv": "0",
         "v0setting_dcanegtopv": "0",
-        "v0setting_cospa": "0.995",
+        "v0setting_cospa": "0.999",
         "v0setting_radius": "0",
         "maxLambdaAlpha": "0.899999976",
         "minLambdaAlpha": "0.400000006",
         "maxLambdaQt": "0.129999995",
         "minLambdaQt": "0.0199999996",
-        "minLambdaMass": "1.110",
-        "maxLambdaMass": "1.121",
+        "minLambdaMass": "1.11",
+        "maxLambdaMass": "1.12",
         "maxLambdaPt": "10.0",
         "maxTpcNSigmaPr": "10.0",
         "maxTpcNSigmaPi": "10.0",
-        "maxTrackDCA": "2.0"
+        "maxTrackDCA": "1.0"
     },
     "process-generated-events": {
         "nBinsPt": "100",
@@ -398,7 +398,7 @@
     "reconstruct-m-c-sigma0via-p-c-m": {
         "zVertexCut": "10",
         "nBinsPt": "120",
-        "nBinsMass": "150",
+        "nBinsMass": "200",
         "minSigma0Mass": "1.12",
         "maxSigma0Mass": "1.32",
         "maxSigma0Pt": "12"
@@ -406,7 +406,7 @@
     "reconstruct-sigma0via-p-c-m": {
         "zVertexCut": "10",
         "nBinsPt": "120",
-        "nBinsMass": "150",
+        "nBinsMass": "200",
         "minSigma0Mass": "1.12",
         "maxSigma0Mass": "1.32",
         "maxSigma0Pt": "12"

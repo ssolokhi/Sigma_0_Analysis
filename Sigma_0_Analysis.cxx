@@ -590,6 +590,55 @@ struct ReconstructSigma0viaPCM {
   }
 };
 
+struct ReconstructNeutralPionsViaPCM {
+  Configurable<float> zVertexCut{"zVertexCut", 10.0f, "Maximum Primary Vertex Z coordinate [cm]"};
+  Filter zVertexFilter = (nabs(collision::posZ) < zVertexCut);
+  Filter zVertexErrorFilter = (collision::posZ != 0.0f);
+  Filter eventSelectionFilter = (evsel::sel8 == true);
+  using filteredCollision = Filtered<Join<Collisions, EvSels>>::iterator;
+
+  Configurable<int> nBinsPt{"nBinsPt", 120, "N bins in pT histo"};
+  Configurable<int> nBinsMass{"nBinsMass", 100, "N bins in invariant mass histo"};
+  Configurable<float> minPi0Mass{"minPi0Mass", 0.1f, "Maximum pi^0 Invariant Mass [GeV]"};
+  Configurable<float> maxPi0Mass{"maxPi0Mass", 0.2f, "Maximum pi^0 Invariant Mass [GeV]"};
+  Configurable<float> maxPi0Pt{"maxPi0Pt", 1.0f, "Maximum pi^0 Transverse Momentum [GeV]"};
+
+  HistogramRegistry histosPi0{"histosPi0", {}, OutputObjHandlingPolicy::AnalysisObject};
+
+  void init(InitContext const&) {
+    const AxisSpec axisPi0Mass{nBinsMass, minPi0Mass, maxPi0Mass, "M_{#gamma#gamma_{PCM}} [GeV]"};
+    const AxisSpec axisPi0Pt{nBinsPt, 0.0f, maxPi0Pt, "p_{T, candidate} [GeV]"};
+    const AxisSpec axisAlpha{100, -1.0f, 1.0f, "#alpha"};
+    const AxisSpec axisQt{100, 0.0f, 0.25f, "q_{T} [GeV]"};
+
+    histosPi0.add("Pi0PCM", "#pi^{0} Candidates From Conversion Photons", kTH2F, {axisPi0Mass, axisPi0Pt});
+    histosPi0.add("Pi0PCMArmenterosPodolanski", "Armenteros-Podolanski Plot for #pi^{0} Candidates (PCM)", kTH2F, {axisAlpha, axisQt});
+  }
+
+  void process(filteredCollision const&, ConversionPhoton const& photons1, LambdaHyperon const& photons2) {
+    for (auto const& [photon1, photon2]: combinations(CombinationsStrictlyUpperIndexPolicy(photons1, photons2))) {
+      TLorentzVector const photon1LorentzVector(photon1.px(), photon1.py(), photon1.pz(), photon1.e());
+      TLorentzVector const photon2LorentzVector(photon2.px(), photon2.py(), photon2.pz(), photon2.e());
+      TLorentzVector const pi0LorentzVector = photon1LorentzVector + photon2LorentzVector;
+      float const pi0Mass = pi0LorentzVector.M();
+      float const pi0Pt = pi0LorentzVector.Pt();
+
+      TVector3 photon1Momentum(photon1.px(), photon1.py(), photon1.pz());
+      TVector3 photon2Momentum(photon2.px(), photon2.py(), photon2.pz());
+      TVector3 pi0Momentum(pi0LorentzVector.Px(), pi0LorentzVector.Py(), pi0LorentzVector.Pz());
+      float pLongPos = photon1Momentum.Dot(pi0Momentum)/pi0Momentum.Mag();
+      float pLongNeg = photon2Momentum.Dot(pi0Momentum)/pi0Momentum.Mag();
+      float alpha = (pLongPos - pLongNeg)/(pLongPos + pLongNeg);
+      float qT = photon1Momentum.Perp(pi0Momentum);
+
+      if (pi0Mass < maxPi0Mass && pi0Mass > minPi0Mass) {
+        histosPi0.fill(HIST("Pi0PCM"), pi0Mass, pi0Pt);
+        histosPi0.fill(HIST("Pi0PCMArmenterosPodolanski"), alpha, qT);
+      }
+    }
+  }
+};
+
 struct ReconstructMCSigma0viaPCM {
   Configurable<float> zVertexCut{"zVertexCut", 10.0f, "Maximum Primary Vertex Z coordinate [cm]"};
   Filter zVertexFilter = (nabs(collision::posZ) < zVertexCut);
@@ -662,6 +711,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc) {
     adaptAnalysisTask<ProcessConversionPhotons>(cfgc),
     adaptAnalysisTask<ProcessLambdaHyperons>(cfgc),
     adaptAnalysisTask<ReconstructSigma0viaPCM>(cfgc),
+    adaptAnalysisTask<ReconstructNeutralPionsViaPCM>(cfgc),
     adaptAnalysisTask<ReconstructMCSigma0viaPCM>(cfgc)
   };
 }
