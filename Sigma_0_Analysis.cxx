@@ -222,7 +222,7 @@ struct ProcessConversionPhotons {
   Configurable<float> zVertexCut{"zVertexCut", 10.0f, "Maximum Primary Vertex Z coordinate [cm]"};
   Filter zVertexFilter = (nabs(collision::posZ) < zVertexCut);
   Filter zVertexErrorFilter = (collision::posZ != 0.0f);
-  Filter eventSelectionFilter = (evsel::sel8 == true);
+  //Filter eventSelectionFilter = (evsel::sel8 == true);
   using filteredCollision = Filtered<Join<Collisions, EvSels>>::iterator;
 
   Configurable<int> nBinsPt{"nBinsPt", 100, "N bins in pT histo"};
@@ -254,6 +254,7 @@ struct ProcessConversionPhotons {
   HistogramRegistry histosConversionPhoton{"histosConversionPhoton", {}, OutputObjHandlingPolicy::AnalysisObject};
 
   void init(InitContext const&) {
+    printf("Init photon");
     const AxisSpec axisEta{100, -etaCut, etaCut, "#eta"};
     const AxisSpec axisPhotonMass{nBinsMass, 0.0f, maxPhotonMass, "M_{e^{+}e^{-}} [GeV]"};
     const AxisSpec axisPhotonPt{nBinsPt, 0.0f, maxPhotonPt, "p_{T} [GeV]"};
@@ -286,6 +287,7 @@ struct ProcessConversionPhotons {
 
   void process(filteredCollision const& collision, filteredV0s const& v0s, filteredPhotonDaughterTracks const&, McParticles const&) {
     for (auto const& v0: v0s) {
+      printf("Photon\n");
       histosConversionPhoton.fill(HIST("photonCutEffects"), 0);
       if (v0.v0cosPA() < v0setting_cospa) continue;
       histosConversionPhoton.fill(HIST("photonCutEffects"), 1);
@@ -367,7 +369,7 @@ struct ProcessLambdaHyperons {
   Configurable<float> zVertexCut{"zVertexCut", 10.0f, "Maximum Primary Vertex Z coordinate [cm]"};
   Filter zVertexFilter = (nabs(collision::posZ) < zVertexCut);
   Filter zVertexErrorFilter = (collision::posZ != 0.0f);
-  Filter eventSelectionFilter = (evsel::sel8 == true);
+  //Filter eventSelectionFilter = (evsel::sel8 == true);
   using filteredCollision = Filtered<Join<Collisions, EvSels>>::iterator;
     
   Configurable<int> nBinsPt{"nBinsPt", 100, "N bins in pT histo"};
@@ -378,7 +380,7 @@ struct ProcessLambdaHyperons {
   Configurable<float> v0setting_dcapostopv{"v0setting_dcapostopv", 0.06f, "DCA Pos To PV [cm]"};
   Configurable<float> v0setting_dcanegtopv{"v0setting_dcanegtopv", 0.06f, "DCA Neg To PV [cm]"};
   Configurable<double> v0setting_cospa{"v0setting_cospa", 0.995, "V0 CosPA"};
-  Configurable<float> v0setting_radius{"v0setting_radius", 0.0f, "V0 Radius [cm]"};
+  Configurable<float> v0setting_radius{"v0setting_radius", 0.0f, "V0 Radius [cm]"}; 
 
   Configurable<float> maxLambdaAlpha{"maxLambdaAlpha", 0.9f, "Maximum Lambda Decay Asymmetry"};
   Configurable<float> minLambdaAlpha{"minLambdaAlpha", 0.4f, "Minimum Lambda Decay Asymmetry"};
@@ -545,7 +547,7 @@ struct ReconstructSigma0viaPCM {
   Configurable<float> zVertexCut{"zVertexCut", 10.0f, "Maximum Primary Vertex Z coordinate [cm]"};
   Filter zVertexFilter = (nabs(collision::posZ) < zVertexCut);
   Filter zVertexErrorFilter = (collision::posZ != 0.0f);
-  Filter eventSelectionFilter = (evsel::sel8 == true);
+  //Filter eventSelectionFilter = (evsel::sel8 == true);
   using filteredCollision = Filtered<Join<Collisions, EvSels>>::iterator;
 
   Configurable<int> nBinsPt{"nBinsPt", 120, "N bins in pT histo"};
@@ -594,10 +596,10 @@ struct ReconstructNeutralPionsViaPCM {
   Configurable<float> zVertexCut{"zVertexCut", 10.0f, "Maximum Primary Vertex Z coordinate [cm]"};
   Filter zVertexFilter = (nabs(collision::posZ) < zVertexCut);
   Filter zVertexErrorFilter = (collision::posZ != 0.0f);
-  Filter eventSelectionFilter = (evsel::sel8 == true);
+  //Filter eventSelectionFilter = (evsel::sel8 == true);
   using filteredCollision = Filtered<Join<Collisions, EvSels>>::iterator;
 
-  Configurable<int> nBinsPt{"nBinsPt", 120, "N bins in pT histo"};
+  Configurable<int> nBinsPt{"nBinsPt", 100, "N bins in pT histo"};
   Configurable<int> nBinsMass{"nBinsMass", 100, "N bins in invariant mass histo"};
   Configurable<float> minPi0Mass{"minPi0Mass", 0.1f, "Maximum pi^0 Invariant Mass [GeV]"};
   Configurable<float> maxPi0Mass{"maxPi0Mass", 0.2f, "Maximum pi^0 Invariant Mass [GeV]"};
@@ -643,7 +645,7 @@ struct ReconstructMCSigma0viaPCM {
   Configurable<float> zVertexCut{"zVertexCut", 10.0f, "Maximum Primary Vertex Z coordinate [cm]"};
   Filter zVertexFilter = (nabs(collision::posZ) < zVertexCut);
   Filter zVertexErrorFilter = (collision::posZ != 0.0f);
-  Filter eventSelectionFilter = (evsel::sel8 == true);
+  //Filter eventSelectionFilter = (evsel::sel8 == true);
   using filteredCollision = Filtered<Join<Collisions, EvSels>>::iterator;
 
   Configurable<int> nBinsPt{"nBinsPt", 120, "N bins in pT histo"};
