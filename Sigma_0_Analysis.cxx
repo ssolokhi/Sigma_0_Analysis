@@ -131,7 +131,7 @@ struct ProcessGeneratedEvents {
     const AxisSpec axisCosTheta{100, 0.99f, 1.0f, "cos#theta"};
 
     histosMC.add("mcGenEta", "Pseudorapidity Of Generated Tracks (MC)", kTH1F, {axisEta});
-    histosMC.add("mcGenPt", "Transverse Momentum Of Generated Tracks (MC)", kTH1F, {{100, 0.0f, 10.0f, "p_{T} [GeV]"}});
+    histosMC.add("mcGenPt", "Transverse Momentum Of Generated Tracks (MC)", kTH1F, {{100, 0.0f, 5.0f, "p_{T} [GeV]"}});
     histosMC.add("mcGenPhotonPt", "Transverse Momentum Of Generated Photons (MC)", kTH1F, {axisPhotonPt});    
     histosMC.add("mcGenLambdaPt", "Transverse Momentum Of Generated #Lambda Hyperons (MC)", kTH1F, {axisLambdaPt});
     histosMC.add("mcGenSigma0Pt", "Transverse Momentum Of Generated #Sigma^{0} Hyperons (MC)", kTH1F, {axisSigma0Pt});
@@ -254,7 +254,6 @@ struct ProcessConversionPhotons {
   HistogramRegistry histosConversionPhoton{"histosConversionPhoton", {}, OutputObjHandlingPolicy::AnalysisObject};
 
   void init(InitContext const&) {
-    printf("Init photon");
     const AxisSpec axisEta{100, -etaCut, etaCut, "#eta"};
     const AxisSpec axisPhotonMass{nBinsMass, 0.0f, maxPhotonMass, "M_{e^{+}e^{-}} [GeV]"};
     const AxisSpec axisPhotonPt{nBinsPt, 0.0f, maxPhotonPt, "p_{T} [GeV]"};
@@ -287,7 +286,6 @@ struct ProcessConversionPhotons {
 
   void process(filteredCollision const& collision, filteredV0s const& v0s, filteredPhotonDaughterTracks const&, McParticles const&) {
     for (auto const& v0: v0s) {
-      printf("Photon\n");
       histosConversionPhoton.fill(HIST("photonCutEffects"), 0);
       if (v0.v0cosPA() < v0setting_cospa) continue;
       histosConversionPhoton.fill(HIST("photonCutEffects"), 1);
@@ -344,7 +342,7 @@ struct ProcessConversionPhotons {
             // check that photon comes from Sigma^0 hyperon:
             if (abs(photonMother.pdgCode()) == 3212) {
               AddMCconversionPhoton(v0mcParticle.px(), photon.Px(), v0mcParticle.py(), photon.Py(),
-              v0mcParticle.pz(), photon.Py(), v0mcParticle.e(), photon.E());
+              v0mcParticle.pz(), photon.Pz(), v0mcParticle.e(), photon.E());
               histosConversionPhoton.fill(HIST("RecGenPhotondEvsGenE"), photonEnergy - v0mcParticle.e(), v0mcParticle.e());
               histosConversionPhoton.fill(HIST("RecGenPhotondPtvsGenPt"), photon.Pt() - v0mcParticle.pt(), v0mcParticle.pt());
             } else {
@@ -528,7 +526,7 @@ struct ProcessLambdaHyperons {
             // check that Lambda hyperon comes from Sigma^0 hyperon:
             if (abs(LambdaMother.pdgCode()) == 3212) { 
               AddMCLambdaHyperon(v0mcParticle.px(), Lambda.Px(), v0mcParticle.py(), Lambda.Py(),
-              v0mcParticle.pz(), Lambda.Py(), v0mcParticle.e(), Lambda.E());
+              v0mcParticle.pz(), Lambda.Pz(), v0mcParticle.e(), Lambda.E());
               histosLambda.fill(HIST("RecGenLambdadEvsGenE"), LambdaEnergy - v0mcParticle.e(), v0mcParticle.e());
               histosLambda.fill(HIST("RecGenLambdadPtvsGenPt"), Lambda.Pt() - v0mcParticle.pt(), v0mcParticle.pt());
             } else {
@@ -544,12 +542,6 @@ struct ProcessLambdaHyperons {
 };
 
 struct ReconstructSigma0viaPCM {
-  Configurable<float> zVertexCut{"zVertexCut", 10.0f, "Maximum Primary Vertex Z coordinate [cm]"};
-  Filter zVertexFilter = (nabs(collision::posZ) < zVertexCut);
-  Filter zVertexErrorFilter = (collision::posZ != 0.0f);
-  //Filter eventSelectionFilter = (evsel::sel8 == true);
-  using filteredCollision = Filtered<Join<Collisions, EvSels>>::iterator;
-
   Configurable<int> nBinsPt{"nBinsPt", 120, "N bins in pT histo"};
   Configurable<int> nBinsMass{"nBinsMass", 150, "N bins in invariant mass histo"};
   Configurable<float> minSigma0Mass{"minSigma0Mass", 1.12f, "Maximum Sigma^0 Invariant Mass [GeV]"};
@@ -568,7 +560,7 @@ struct ReconstructSigma0viaPCM {
     histosSigma0.add("Sigma0PCMArmenterosPodolanski", "Armenteros-Podolanski Plot for #Sigma^{0} Candidates (PCM)", kTH2F, {axisAlpha, axisQt});
   }
 
-  void process(filteredCollision const&, ConversionPhoton const& photons, LambdaHyperon const& Lambdas) {
+  void process(Collision const&, ConversionPhoton const& photons, LambdaHyperon const& Lambdas) {
     for (auto const& [Lambda, photon]: combinations(CombinationsFullIndexPolicy(Lambdas, photons))) {
       TLorentzVector const LambdaLorentzVector(Lambda.px(), Lambda.py(), Lambda.pz(), Lambda.e());
       TLorentzVector const photonLorentzVector(photon.px(), photon.py(), photon.pz(), photon.e());
@@ -593,22 +585,16 @@ struct ReconstructSigma0viaPCM {
 };
 
 struct ReconstructNeutralPionsViaPCM {
-  Configurable<float> zVertexCut{"zVertexCut", 10.0f, "Maximum Primary Vertex Z coordinate [cm]"};
-  Filter zVertexFilter = (nabs(collision::posZ) < zVertexCut);
-  Filter zVertexErrorFilter = (collision::posZ != 0.0f);
-  //Filter eventSelectionFilter = (evsel::sel8 == true);
-  using filteredCollision = Filtered<Join<Collisions, EvSels>>::iterator;
-
   Configurable<int> nBinsPt{"nBinsPt", 100, "N bins in pT histo"};
   Configurable<int> nBinsMass{"nBinsMass", 100, "N bins in invariant mass histo"};
   Configurable<float> minPi0Mass{"minPi0Mass", 0.1f, "Maximum pi^0 Invariant Mass [GeV]"};
   Configurable<float> maxPi0Mass{"maxPi0Mass", 0.2f, "Maximum pi^0 Invariant Mass [GeV]"};
-  Configurable<float> maxPi0Pt{"maxPi0Pt", 1.0f, "Maximum pi^0 Transverse Momentum [GeV]"};
+  Configurable<float> maxPi0Pt{"maxPi0Pt", 5.0f, "Maximum pi^0 Transverse Momentum [GeV]"};
 
   HistogramRegistry histosPi0{"histosPi0", {}, OutputObjHandlingPolicy::AnalysisObject};
 
   void init(InitContext const&) {
-    const AxisSpec axisPi0Mass{nBinsMass, minPi0Mass, maxPi0Mass, "M_{#gamma#gamma_{PCM}} [GeV]"};
+    const AxisSpec axisPi0Mass{nBinsMass, minPi0Mass, maxPi0Mass, "M_{#gamma_{PCM}#gamma_{PCM}} [GeV]"};
     const AxisSpec axisPi0Pt{nBinsPt, 0.0f, maxPi0Pt, "p_{T, candidate} [GeV]"};
     const AxisSpec axisAlpha{100, -1.0f, 1.0f, "#alpha"};
     const AxisSpec axisQt{100, 0.0f, 0.25f, "q_{T} [GeV]"};
@@ -617,8 +603,8 @@ struct ReconstructNeutralPionsViaPCM {
     histosPi0.add("Pi0PCMArmenterosPodolanski", "Armenteros-Podolanski Plot for #pi^{0} Candidates (PCM)", kTH2F, {axisAlpha, axisQt});
   }
 
-  void process(filteredCollision const&, ConversionPhoton const& photons1, LambdaHyperon const& photons2) {
-    for (auto const& [photon1, photon2]: combinations(CombinationsStrictlyUpperIndexPolicy(photons1, photons2))) {
+  void process(Collision const&, ConversionPhoton const& photons) {
+    for (auto const& [photon1, photon2]: combinations(CombinationsStrictlyUpperIndexPolicy(photons, photons))) {
       TLorentzVector const photon1LorentzVector(photon1.px(), photon1.py(), photon1.pz(), photon1.e());
       TLorentzVector const photon2LorentzVector(photon2.px(), photon2.py(), photon2.pz(), photon2.e());
       TLorentzVector const pi0LorentzVector = photon1LorentzVector + photon2LorentzVector;
@@ -642,12 +628,6 @@ struct ReconstructNeutralPionsViaPCM {
 };
 
 struct ReconstructMCSigma0viaPCM {
-  Configurable<float> zVertexCut{"zVertexCut", 10.0f, "Maximum Primary Vertex Z coordinate [cm]"};
-  Filter zVertexFilter = (nabs(collision::posZ) < zVertexCut);
-  Filter zVertexErrorFilter = (collision::posZ != 0.0f);
-  //Filter eventSelectionFilter = (evsel::sel8 == true);
-  using filteredCollision = Filtered<Join<Collisions, EvSels>>::iterator;
-
   Configurable<int> nBinsPt{"nBinsPt", 120, "N bins in pT histo"};
   Configurable<int> nBinsMass{"nBinsMass", 150, "N bins in invariant mass histo"};
   Configurable<float> minSigma0Mass{"minSigma0Mass", 1.12f, "Maximum Sigma^0 Invariant Mass [GeV]"};
@@ -666,7 +646,7 @@ struct ReconstructMCSigma0viaPCM {
     histosMCSigma0.add("MCSigma0PCMrecLambdaRecPhoton", "#Sigma^{0} Candidates From Conversion Photons (rec. #Lambda, rec. #gamma)", kTH2F, {axisSigma0Mass, axisSigma0Pt}); 
   }
 
-  void process(filteredCollision const&, mcConversionPhoton const& mcPhotons, mcLambdaHyperon const& mcLambdas) {
+  void process(Collision const&, mcConversionPhoton const& mcPhotons, mcLambdaHyperon const& mcLambdas) {
     for (auto const& [mcLambda, mcPhoton]: combinations(CombinationsFullIndexPolicy(mcLambdas, mcPhotons))) {
       TLorentzVector const generatedLambdaLorentzVector(mcLambda.genpx(), mcLambda.genpy(), mcLambda.genpz(), mcLambda.gene());
       TLorentzVector const generatedPhotonLorentzVector(mcPhoton.genpx(), mcPhoton.genpy(), mcPhoton.genpz(), mcPhoton.gene());

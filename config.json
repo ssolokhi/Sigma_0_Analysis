@@ -529,7 +529,7 @@
         "nBinsMass": "100",
         "minPi0Mass": "0.100000001",
         "maxPi0Mass": "0.200000003",
-        "maxPi0Pt": "1"
+        "maxPi0Pt": "5.0"
     },
     "reconstruct-sigma0via-p-c-m": {
         "zVertexCut": "10",
