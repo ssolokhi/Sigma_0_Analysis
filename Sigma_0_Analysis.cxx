@@ -40,10 +40,11 @@ namespace o2::aod {
     DECLARE_SOA_COLUMN(Py, py, float);
     DECLARE_SOA_COLUMN(Pz, pz, float);
     DECLARE_SOA_COLUMN(E, e, float);
+    DECLARE_SOA_COLUMN(CollisionIndex, collisionIndex, float);
   }
 
   DECLARE_SOA_TABLE(ConversionPhoton, "AOD", "PCMPHOTON", 
-  conversionphoton::Px, conversionphoton::Py, conversionphoton::Pz, conversionphoton::E);
+  conversionphoton::Px, conversionphoton::Py, conversionphoton::Pz, conversionphoton::E, conversionphoton::CollisionIndex);
 }
 
 namespace o2::aod {
@@ -56,11 +57,12 @@ namespace o2::aod {
     DECLARE_SOA_COLUMN(RecPz, recpz, float);
     DECLARE_SOA_COLUMN(GenE, gene, float);
     DECLARE_SOA_COLUMN(RecE, rece, float);
+    DECLARE_SOA_COLUMN(CollisionIndex, collisionIndex, float);
   }
 
   DECLARE_SOA_TABLE(mcConversionPhoton, "AOD", "MCPCMPHOTON", mcconversionphoton::GenPx, mcconversionphoton::RecPx,
   mcconversionphoton::GenPy, mcconversionphoton::RecPy, mcconversionphoton::GenPz, mcconversionphoton::RecPz,
-  mcconversionphoton::GenE, mcconversionphoton::RecE);
+  mcconversionphoton::GenE, mcconversionphoton::RecE, mcconversionphoton::CollisionIndex);
 }
 
 namespace o2::aod {
@@ -69,10 +71,11 @@ namespace o2::aod {
     DECLARE_SOA_COLUMN(Py, py, float);
     DECLARE_SOA_COLUMN(Pz, pz, float);
     DECLARE_SOA_COLUMN(E, e, float);
+    DECLARE_SOA_COLUMN(CollisionIndex, collisionIndex, float);
   }
 
   DECLARE_SOA_TABLE(LambdaHyperon, "AOD", "LAMBDAHYPERON", 
-  lambdahyperon::Px, lambdahyperon::Py, lambdahyperon::Pz, lambdahyperon::E);
+  lambdahyperon::Px, lambdahyperon::Py, lambdahyperon::Pz, lambdahyperon::E, lambdahyperon::CollisionIndex);
 }
 
 namespace o2::aod {
@@ -85,11 +88,12 @@ namespace o2::aod {
     DECLARE_SOA_COLUMN(RecPz, recpz, float);
     DECLARE_SOA_COLUMN(GenE, gene, float);
     DECLARE_SOA_COLUMN(RecE, rece, float);
+    DECLARE_SOA_COLUMN(CollisionIndex, collisionIndex, float);
   }
 
   DECLARE_SOA_TABLE(mcLambdaHyperon, "AOD", "MCLAMBDAHYPERON", mclambdahyperon::GenPx, mclambdahyperon::RecPx,
   mclambdahyperon::GenPy, mclambdahyperon::RecPy, mclambdahyperon::GenPz, mclambdahyperon::RecPz,
-  mclambdahyperon::GenE, mclambdahyperon::RecE);
+  mclambdahyperon::GenE, mclambdahyperon::RecE, mclambdahyperon::CollisionIndex);
 }
 
 struct ProcessCollisions {
@@ -331,7 +335,7 @@ struct ProcessConversionPhotons {
       histosConversionPhoton.fill(HIST("photonPt"), photon.Pt());
       histosConversionPhoton.fill(HIST("photonEta"), photon.Eta());
 
-      AddConversionPhoton(photon.Px(), photon.Py(), photon.Pz(), photon.E());
+      AddConversionPhoton(photon.Px(), photon.Py(), photon.Pz(), photon.E(), collision.globalIndex());
 
       if (v0.has_mcParticle()) {
         auto const& v0mcParticle = v0.mcParticle();
@@ -342,7 +346,7 @@ struct ProcessConversionPhotons {
             // check that photon comes from Sigma^0 hyperon:
             if (abs(photonMother.pdgCode()) == 3212) {
               AddMCconversionPhoton(v0mcParticle.px(), photon.Px(), v0mcParticle.py(), photon.Py(),
-              v0mcParticle.pz(), photon.Pz(), v0mcParticle.e(), photon.E());
+              v0mcParticle.pz(), photon.Pz(), v0mcParticle.e(), photon.E(), collision.globalIndex());
               histosConversionPhoton.fill(HIST("RecGenPhotondEvsGenE"), photonEnergy - v0mcParticle.e(), v0mcParticle.e());
               histosConversionPhoton.fill(HIST("RecGenPhotondPtvsGenPt"), photon.Pt() - v0mcParticle.pt(), v0mcParticle.pt());
             } else {
@@ -485,7 +489,8 @@ struct ProcessLambdaHyperons {
       if (isLambda) {
         protonEnergy = std::sqrt(posLambdaDaughterTrack.p()*posLambdaDaughterTrack.p() + protonMass*protonMass);
         pionEnergy = std::sqrt(negLambdaDaughterTrack.p()*negLambdaDaughterTrack.p() + chargedPionMass*chargedPionMass);
-      } else if (isAntiLambda) {
+      } 
+      if (isAntiLambda) {
         protonEnergy = std::sqrt(negLambdaDaughterTrack.p()*negLambdaDaughterTrack.p() + protonMass*protonMass);
         pionEnergy = std::sqrt(posLambdaDaughterTrack.p()*posLambdaDaughterTrack.p() + chargedPionMass*chargedPionMass);
       }
@@ -499,7 +504,8 @@ struct ProcessLambdaHyperons {
       if (isLambda) {
         histosLambda.fill(HIST("posTPCPr"), tpcNPosSigmaPr);
         histosLambda.fill(HIST("negTPCPi"), tpcNNegSigmaPi);
-      } else if (isAntiLambda) {
+      } 
+      if (isAntiLambda) {
         histosLambda.fill(HIST("posTPCPi"), tpcNPosSigmaPi);
         histosLambda.fill(HIST("negTPCPr"), tpcNNegSigmaPr);
       }
@@ -515,7 +521,7 @@ struct ProcessLambdaHyperons {
       histosLambda.fill(HIST("LambdaPt"), Lambda.Pt());
       histosLambda.fill(HIST("LambdaEta"), Lambda.Eta());
 
-      AddLambdaHyperon(Lambda.Px(), Lambda.Py(), Lambda.Pz(), Lambda.E());
+      AddLambdaHyperon(Lambda.Px(), Lambda.Py(), Lambda.Pz(), Lambda.E(), collision.globalIndex());
 
       if (v0.has_mcParticle()) {
         auto const& v0mcParticle = v0.mcParticle();
@@ -526,7 +532,7 @@ struct ProcessLambdaHyperons {
             // check that Lambda hyperon comes from Sigma^0 hyperon:
             if (abs(LambdaMother.pdgCode()) == 3212) { 
               AddMCLambdaHyperon(v0mcParticle.px(), Lambda.Px(), v0mcParticle.py(), Lambda.Py(),
-              v0mcParticle.pz(), Lambda.Pz(), v0mcParticle.e(), Lambda.E());
+              v0mcParticle.pz(), Lambda.Pz(), v0mcParticle.e(), Lambda.E(), collision.globalIndex());
               histosLambda.fill(HIST("RecGenLambdadEvsGenE"), LambdaEnergy - v0mcParticle.e(), v0mcParticle.e());
               histosLambda.fill(HIST("RecGenLambdadPtvsGenPt"), Lambda.Pt() - v0mcParticle.pt(), v0mcParticle.pt());
             } else {
@@ -544,7 +550,7 @@ struct ProcessLambdaHyperons {
 struct ReconstructSigma0viaPCM {
   Configurable<int> nBinsPt{"nBinsPt", 120, "N bins in pT histo"};
   Configurable<int> nBinsMass{"nBinsMass", 150, "N bins in invariant mass histo"};
-  Configurable<float> minSigma0Mass{"minSigma0Mass", 1.12f, "Maximum Sigma^0 Invariant Mass [GeV]"};
+  Configurable<float> minSigma0Mass{"minSigma0Mass", 1.12f, "Minimum Sigma^0 Invariant Mass [GeV]"};
   Configurable<float> maxSigma0Mass{"maxSigma0Mass", 1.32f, "Maximum Sigma^0 Invariant Mass [GeV]"};
   Configurable<float> maxSigma0Pt{"maxSigma0Pt", 12.0f, "Maximum Sigma^0 Hyperon Transverse Momentum [GeV]"};
 
@@ -560,8 +566,10 @@ struct ReconstructSigma0viaPCM {
     histosSigma0.add("Sigma0PCMArmenterosPodolanski", "Armenteros-Podolanski Plot for #Sigma^{0} Candidates (PCM)", kTH2F, {axisAlpha, axisQt});
   }
 
-  void process(Collision const&, ConversionPhoton const& photons, LambdaHyperon const& Lambdas) {
+  //void process(Collision const&, ConversionPhoton const& photons, LambdaHyperon const& Lambdas) {
+  void process(ConversionPhoton const& photons, LambdaHyperon const& Lambdas) {
     for (auto const& [Lambda, photon]: combinations(CombinationsFullIndexPolicy(Lambdas, photons))) {
+      if (Lambda.collisionIndex() != photon.collisionIndex()) continue;
       TLorentzVector const LambdaLorentzVector(Lambda.px(), Lambda.py(), Lambda.pz(), Lambda.e());
       TLorentzVector const photonLorentzVector(photon.px(), photon.py(), photon.pz(), photon.e());
       TLorentzVector const Sigma0LorentzVector = LambdaLorentzVector + photonLorentzVector;
@@ -587,7 +595,7 @@ struct ReconstructSigma0viaPCM {
 struct ReconstructNeutralPionsViaPCM {
   Configurable<int> nBinsPt{"nBinsPt", 100, "N bins in pT histo"};
   Configurable<int> nBinsMass{"nBinsMass", 100, "N bins in invariant mass histo"};
-  Configurable<float> minPi0Mass{"minPi0Mass", 0.1f, "Maximum pi^0 Invariant Mass [GeV]"};
+  Configurable<float> minPi0Mass{"minPi0Mass", 0.1f, "Minimum pi^0 Invariant Mass [GeV]"};
   Configurable<float> maxPi0Mass{"maxPi0Mass", 0.2f, "Maximum pi^0 Invariant Mass [GeV]"};
   Configurable<float> maxPi0Pt{"maxPi0Pt", 5.0f, "Maximum pi^0 Transverse Momentum [GeV]"};
 
@@ -603,8 +611,10 @@ struct ReconstructNeutralPionsViaPCM {
     histosPi0.add("Pi0PCMArmenterosPodolanski", "Armenteros-Podolanski Plot for #pi^{0} Candidates (PCM)", kTH2F, {axisAlpha, axisQt});
   }
 
-  void process(Collision const&, ConversionPhoton const& photons) {
+  //void process(Collision const&, ConversionPhoton const& photons) {
+  void process(ConversionPhoton const& photons) {
     for (auto const& [photon1, photon2]: combinations(CombinationsStrictlyUpperIndexPolicy(photons, photons))) {
+      if (photon1.collisionIndex() != photon2.collisionIndex()) continue;
       TLorentzVector const photon1LorentzVector(photon1.px(), photon1.py(), photon1.pz(), photon1.e());
       TLorentzVector const photon2LorentzVector(photon2.px(), photon2.py(), photon2.pz(), photon2.e());
       TLorentzVector const pi0LorentzVector = photon1LorentzVector + photon2LorentzVector;
@@ -630,7 +640,7 @@ struct ReconstructNeutralPionsViaPCM {
 struct ReconstructMCSigma0viaPCM {
   Configurable<int> nBinsPt{"nBinsPt", 120, "N bins in pT histo"};
   Configurable<int> nBinsMass{"nBinsMass", 150, "N bins in invariant mass histo"};
-  Configurable<float> minSigma0Mass{"minSigma0Mass", 1.12f, "Maximum Sigma^0 Invariant Mass [GeV]"};
+  Configurable<float> minSigma0Mass{"minSigma0Mass", 1.12f, "Minimum Sigma^0 Invariant Mass [GeV]"};
   Configurable<float> maxSigma0Mass{"maxSigma0Mass", 1.32f, "Maximum Sigma^0 Invariant Mass [GeV]"};
   Configurable<float> maxSigma0Pt{"maxSigma0Pt", 12.0f, "Maximum Sigma^0 Hyperon Transverse Momentum [GeV]"};
 
@@ -646,8 +656,10 @@ struct ReconstructMCSigma0viaPCM {
     histosMCSigma0.add("MCSigma0PCMrecLambdaRecPhoton", "#Sigma^{0} Candidates From Conversion Photons (rec. #Lambda, rec. #gamma)", kTH2F, {axisSigma0Mass, axisSigma0Pt}); 
   }
 
-  void process(Collision const&, mcConversionPhoton const& mcPhotons, mcLambdaHyperon const& mcLambdas) {
+  //void process(Collision const&, mcConversionPhoton const& mcPhotons, mcLambdaHyperon const& mcLambdas) {
+  void process(mcConversionPhoton const& mcPhotons, mcLambdaHyperon const& mcLambdas) {
     for (auto const& [mcLambda, mcPhoton]: combinations(CombinationsFullIndexPolicy(mcLambdas, mcPhotons))) {
+      if (mcLambda.collisionIndex() != mcPhoton.collisionIndex()) continue;
       TLorentzVector const generatedLambdaLorentzVector(mcLambda.genpx(), mcLambda.genpy(), mcLambda.genpz(), mcLambda.gene());
       TLorentzVector const generatedPhotonLorentzVector(mcPhoton.genpx(), mcPhoton.genpy(), mcPhoton.genpz(), mcPhoton.gene());
      

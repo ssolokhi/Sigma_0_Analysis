@@ -140,7 +140,7 @@
         "createV0DauCovMats": "-1",
         "createV0PosAtDCAs": "0",
         "createV0PosAtIUs": "0",
-        "storePhotonCandidates": "false",
+        "storePhotonCandidates": "true",
         "d_UseAutodetectMode": "true",
         "downscalingOptions": {
             "downscaleFactor": "2",
@@ -481,9 +481,9 @@
         "v0setting_dcanegtopv": "0",
         "v0setting_cospa": "0.999",
         "v0setting_radius": "0",
-        "maxPhotonMass": "1",
+        "maxPhotonMass": "0.300000012",
         "maxPhotonPt": "10",
-        "maxTpcNSigmaEl": "10",
+        "maxTpcNSigmaEl": "3",
         "maxTrackDCA": "2",
         "maxPhotonAlpha": "0.699999988",
         "maxPhotonQt": "0.0250000004"
@@ -505,8 +505,8 @@
         "minLambdaMass": "1.11000001",
         "maxLambdaMass": "1.12",
         "maxLambdaPt": "10",
-        "maxTpcNSigmaPr": "10",
-        "maxTpcNSigmaPi": "10",
+        "maxTpcNSigmaPr": "5",
+        "maxTpcNSigmaPi": "5",
         "maxTrackDCA": "1"
     },
     "process-generated-events": {
@@ -516,7 +516,6 @@
         "maxSigma0Pt": "5"
     },
     "reconstruct-m-c-sigma0via-p-c-m": {
-        "zVertexCut": "10",
         "nBinsPt": "120",
         "nBinsMass": "200",
         "minSigma0Mass": "1.12",
@@ -524,15 +523,13 @@
         "maxSigma0Pt": "12"
     },
     "reconstruct-neutral-pions-via-p-c-m": {
-        "zVertexCut": "10",
         "nBinsPt": "100",
         "nBinsMass": "100",
         "minPi0Mass": "0.100000001",
         "maxPi0Mass": "0.200000003",
-        "maxPi0Pt": "5.0"
+        "maxPi0Pt": "5"
     },
     "reconstruct-sigma0via-p-c-m": {
-        "zVertexCut": "10",
         "nBinsPt": "120",
         "nBinsMass": "200",
         "minSigma0Mass": "1.12",
